@@ -271,16 +271,23 @@ function createAntler() {
     return group;
 }
 
-// New function to handle deer death
+// Update the killDeer function for proper side-falling animation
 function killDeer(deer) {
     deer.state = 'dead';
     deer.isHarvestable = true;
     
-    // Rotate deer to lying position
-    deer.model.rotation.z = Math.PI / 2; // Roll onto side
-    deer.model.position.y = 0.5; // Lower to ground
+    // Alternative approach: rotate based on model orientation
+    // Reset any existing rotation first
+    deer.model.rotation.set(0, deer.model.rotation.y, 0);
     
-    // Play death animation/sound if available
+    // Apply a rotation that puts the deer on its side
+    // Try rotating around x-axis instead of z-axis
+    deer.model.rotateX(Math.PI / 2);
+    
+    // Ensure deer is on the ground
+    deer.model.position.y = 0.7;
+    
+    // Play death animation/sound
     playSound('deerDeath');
     
     // Add visual indicator for harvestable deer
