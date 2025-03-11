@@ -4,6 +4,7 @@ let deers = [];
 let score = 0;
 let ammo = 5;
 let maxAmmo = 5;
+let ammoCost = 10; // Cost to buy one ammo
 let isGameActive = false;
 let lastTime = 0;
 let zoomLevel = 1;
@@ -78,11 +79,43 @@ function onWindowResize() {
 }
 
 function updateScore() {
-    document.getElementById('score').textContent = `Score: ${score}`;
+    document.getElementById('score').textContent = `$${score}`;
 }
 
 function updateAmmo() {
     document.getElementById('ammo').textContent = `Ammo: ${ammo}/${maxAmmo}`;
+}
+
+function buyAmmo() {
+    if (!isGameActive) return;
+    
+    // Check if player has enough money
+    if (score >= ammoCost) {
+        // Deduct cost
+        score -= ammoCost;
+        updateScore();
+        
+        // Add ammo
+        ammo = Math.min(maxAmmo, ammo + 1);
+        updateAmmo();
+        
+        // Show purchase message
+        showMessage("Ammo purchased!");
+    } else {
+        // Show insufficient funds message
+        showMessage("Not enough money! Need $" + ammoCost);
+    }
+}
+
+function showMessage(text) {
+    const message = document.getElementById('message');
+    message.textContent = text;
+    message.style.opacity = 1;
+    
+    // Fade out after 2 seconds
+    setTimeout(() => {
+        message.style.opacity = 0;
+    }, 2000);
 }
 
 function shoot() {
@@ -122,7 +155,7 @@ function shoot() {
 
 function handleDeerHit(deer) {
     // Increase score
-    score += 10;
+    score += 20; // Increased reward 
     updateScore();
     
     // Play hit sound

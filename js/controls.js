@@ -7,7 +7,8 @@ const keys = {
     shift: false,
     r: false,
     q: false,  // Zoom out
-    e: false   // Zoom in
+    e: false,  // Zoom in
+    p: false   // Purchase ammo
 };
 
 let isPointerLocked = false;
@@ -39,6 +40,10 @@ function initControls() {
                 keys.e = true; 
                 zoomIn();
                 break;
+            case 'p':
+                keys.p = true;
+                buyAmmo();
+                break;
         }
     });
 
@@ -53,6 +58,7 @@ function initControls() {
             case 'r': keys.r = false; break;
             case 'q': keys.q = false; break;
             case 'e': keys.e = false; break;
+            case 'p': keys.p = false; break;
         }
     });
 
