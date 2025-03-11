@@ -60,6 +60,19 @@ function initControls() {
     
     // Zoom controls (trackpad)
     renderer.domElement.addEventListener('wheel', onWheel);
+
+    // Prevent pinch zoom on the entire document
+    document.addEventListener('gesturestart', function(event) {
+        event.preventDefault();
+    });
+    
+    document.addEventListener('gesturechange', function(event) {
+        event.preventDefault();
+    });
+    
+    document.addEventListener('gestureend', function(event) {
+        event.preventDefault();
+    });
 }
 
 function onPointerLockChange() {
@@ -99,7 +112,10 @@ function onMouseDown(event) {
 }
 
 function onTouchStart(event) {
+    // Prevent default zoom behavior
     if (event.touches.length === 2) {
+        event.preventDefault();
+        
         // Start pinch zoom
         const dx = event.touches[0].pageX - event.touches[1].pageX;
         const dy = event.touches[0].pageY - event.touches[1].pageY;
@@ -108,7 +124,10 @@ function onTouchStart(event) {
 }
 
 function onTouchMove(event) {
+    // Prevent default zoom behavior
     if (event.touches.length === 2) {
+        event.preventDefault();
+        
         // Handle pinch zoom
         const dx = event.touches[0].pageX - event.touches[1].pageX;
         const dy = event.touches[0].pageY - event.touches[1].pageY;
@@ -150,6 +169,9 @@ function onTouchEnd(event) {
 }
 
 function onWheel(event) {
+    // Prevent default zoom behavior
+    event.preventDefault();
+    
     // Handle trackpad/mouse wheel zoom
     const zoomDelta = -event.deltaY * 0.001;
     zoomLevel = Math.max(1, Math.min(3, zoomLevel + zoomDelta));
