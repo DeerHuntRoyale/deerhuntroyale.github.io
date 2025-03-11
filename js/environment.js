@@ -16,21 +16,15 @@ function createEnvironment() {
     scene.background = new THREE.Color(0x87CEEB); // Sky blue color
     scene.fog = new THREE.FogExp2(0x87CEEB, 0.002);
     
-    // Increase ambient light intensity to brighten shadows
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.7); // Increased from 0.4 to 0.7
+    // Add ambient light
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
     scene.add(ambientLight);
-    
-    // Add hemisphere light for more natural environmental lighting
-    const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x556B2F, 0.6);
-    scene.add(hemisphereLight);
     
     // Add directional light (sun)
     const sunPosition = new THREE.Vector3(100, 150, 50);
-    const sunLight = new THREE.DirectionalLight(0xffffcc, 1.0); // Reduced intensity slightly
+    const sunLight = new THREE.DirectionalLight(0xffffcc, 1.2);
     sunLight.position.copy(sunPosition);
     sunLight.castShadow = true;
-    
-    // Improve shadow appearance
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
     sunLight.shadow.camera.near = 0.5;
@@ -39,12 +33,6 @@ function createEnvironment() {
     sunLight.shadow.camera.right = 100;
     sunLight.shadow.camera.top = 100;
     sunLight.shadow.camera.bottom = -100;
-    
-    // Soften shadows
-    sunLight.shadow.bias = -0.0005; // Reduce shadow acne
-    sunLight.shadow.radius = 3; // Blur shadow edges
-    sunLight.shadow.normalBias = 0.05; // Additional bias for normal-facing surfaces
-    
     scene.add(sunLight);
     
     // Create visible sun
@@ -77,6 +65,9 @@ function createEnvironment() {
     
     // Add rocks
     createRocks(50);
+    
+    // Add advertising blimps after clouds
+    createBlimps(3); // Just a few blimps
 }
 
 function createSkybox() {
@@ -121,13 +112,9 @@ function createTrees(count) {
         // Don't place trees too close to the player
         if (Math.abs(x) < 10 && Math.abs(z) < 10) continue;
         
-        // Tree trunk - slightly brighter brown color
+        // Tree trunk
         const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.7, 5, 8);
-        const trunkMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0x9E6B4A, // Brighter brown
-            emissive: 0x221100, // Slight emissive to brighten dark areas
-            emissiveIntensity: 0.1
-        });
+        const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
         const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
         trunk.position.set(x, 2.5, z);
         trunk.castShadow = true;
@@ -135,13 +122,9 @@ function createTrees(count) {
         trunk.isCollidable = true;
         scene.add(trunk);
         
-        // Tree top (leaves) - brighter green
+        // Tree top (leaves)
         const leavesGeometry = new THREE.ConeGeometry(3, 7, 8);
-        const leavesMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0x116611, // Brighter green
-            emissive: 0x002200, // Slight emissive to brighten dark areas
-            emissiveIntensity: 0.1
-        });
+        const leavesMaterial = new THREE.MeshLambertMaterial({ color: 0x005500 });
         const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
         leaves.position.set(x, 8, z);
         leaves.castShadow = true;
@@ -311,6 +294,143 @@ function createClouds(count) {
     }
 }
 
+function createBlimps(count) {
+    // Create a few different advertisement textures
+    const adTextures = [
+        createAdTexture('Campbell\'s Soup', 0xff0000),
+        createAdTexture('Hunt Responsibly', 0x0077ff),
+        createAdTexture('Outdoor Gear', 0x009900)
+    ];
+    
+    for (let i = 0; i < count; i++) {
+        // Create a blimp group
+        const blimp = new THREE.Group();
+        
+        // Create the main blimp body (elongated ellipsoid)
+        const bodyGeometry = new THREE.SphereGeometry(10, 16, 12);
+        bodyGeometry.scale(2.5, 1, 1);
+        
+        const bodyMaterial = new THREE.MeshLambertMaterial({
+            color: 0xeeeeee,
+            emissive: 0x333333,
+            emissiveIntensity: 0.1
+        });
+        
+        const blimpBody = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        blimp.add(blimpBody);
+        
+        // Create the gondola (cabin) under the blimp
+        const gondolaGeometry = new THREE.BoxGeometry(6, 2, 2);
+        const gondolaMaterial = new THREE.MeshLambertMaterial({
+            color: 0x333333
+        });
+        
+        const gondola = new THREE.Mesh(gondolaGeometry, gondolaMaterial);
+        gondola.position.y = -5;
+        blimp.add(gondola);
+        
+        // Create fins at the back
+        const finGeometry = new THREE.ConeGeometry(2, 5, 4);
+        finGeometry.rotateX(Math.PI / 2);
+        
+        const finMaterial = new THREE.MeshLambertMaterial({
+            color: 0xdddddd
+        });
+        
+        // Top fin
+        const topFin = new THREE.Mesh(finGeometry, finMaterial);
+        topFin.position.set(-15, 0, 0);
+        topFin.rotation.z = Math.PI / 2;
+        blimp.add(topFin);
+        
+        // Bottom fin
+        const bottomFin = new THREE.Mesh(finGeometry, finMaterial);
+        bottomFin.position.set(-15, 0, 0);
+        bottomFin.rotation.z = -Math.PI / 2;
+        blimp.add(bottomFin);
+        
+        // Side fin
+        const sideFin = new THREE.Mesh(finGeometry, finMaterial);
+        sideFin.position.set(-15, 0, 0);
+        sideFin.rotation.y = Math.PI / 2;
+        blimp.add(sideFin);
+        
+        // Create billboard on both sides of the blimp
+        const billboardGeometry = new THREE.PlaneGeometry(20, 8);
+        const billboardMaterial = new THREE.MeshBasicMaterial({
+            map: adTextures[i % adTextures.length],
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+        
+        // Left side billboard
+        const billboardLeft = new THREE.Mesh(billboardGeometry, billboardMaterial);
+        billboardLeft.position.set(0, 0, -6);
+        billboardLeft.rotation.y = Math.PI / 2;
+        blimp.add(billboardLeft);
+        
+        // Right side billboard (same ad on both sides)
+        const billboardRight = new THREE.Mesh(billboardGeometry, billboardMaterial);
+        billboardRight.position.set(0, 0, 6);
+        billboardRight.rotation.y = -Math.PI / 2;
+        blimp.add(billboardRight);
+        
+        // Position the blimp high in the sky
+        const radius = 200 + Math.random() * 150;
+        const angle = (i / count) * Math.PI * 2; // Distribute evenly
+        const height = 180 + Math.random() * 40; // Higher than clouds
+        
+        blimp.position.set(
+            Math.sin(angle) * radius,
+            height,
+            Math.cos(angle) * radius
+        );
+        
+        // Rotate to face center
+        blimp.lookAt(0, blimp.position.y, 0);
+        
+        // Add blimp movement data
+        blimp.userData = {
+            speed: 0.5 + Math.random() * 0.5,
+            rotationSpeed: (Math.random() - 0.5) * 0.0005,
+            wobblePhase: Math.random() * Math.PI * 2
+        };
+        
+        // Add blimp to scene
+        scene.add(blimp);
+        
+        // Store for animation
+        if (!window.blimps) window.blimps = [];
+        window.blimps.push(blimp);
+    }
+}
+
+// Create advertisement texture with text
+function createAdTexture(text, bgColor) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 256;
+    const context = canvas.getContext('2d');
+    
+    // Fill background
+    context.fillStyle = new THREE.Color(bgColor).getStyle();
+    context.fillRect(0, 0, 512, 256);
+    
+    // Add border
+    context.strokeStyle = '#ffffff';
+    context.lineWidth = 10;
+    context.strokeRect(5, 5, 502, 246);
+    
+    // Add text
+    context.fillStyle = '#ffffff';
+    context.font = 'bold 60px Arial';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(text, 256, 128);
+    
+    return new THREE.CanvasTexture(canvas);
+}
+
 // Update animate function for more cloud effects
 function animate(time) {
     // ... existing code ...
@@ -344,6 +464,38 @@ function animate(time) {
                 cloud.position.x = Math.sin(newAngle) * radius;
                 cloud.position.z = Math.cos(newAngle) * radius;
             }
+        });
+    }
+    
+    // Animate blimps
+    if (window.blimps) {
+        window.blimps.forEach(blimp => {
+            // Circular movement
+            const speed = blimp.userData.speed * delta;
+            const currentAngle = Math.atan2(blimp.position.x, blimp.position.z);
+            const newAngle = currentAngle + speed * 0.01;
+            const radius = Math.sqrt(
+                blimp.position.x * blimp.position.x + 
+                blimp.position.z * blimp.position.z
+            );
+            
+            blimp.position.x = Math.sin(newAngle) * radius;
+            blimp.position.z = Math.cos(newAngle) * radius;
+            
+            // Slight wobble for more natural movement
+            blimp.userData.wobblePhase += 0.01;
+            blimp.position.y += Math.sin(blimp.userData.wobblePhase) * 0.05;
+            
+            // Rotate slightly
+            blimp.rotation.y += blimp.userData.rotationSpeed;
+            
+            // Keep facing center-ish
+            const targetAngle = Math.atan2(-blimp.position.x, -blimp.position.z);
+            blimp.rotation.y = THREE.MathUtils.lerp(
+                blimp.rotation.y,
+                targetAngle,
+                0.02
+            );
         });
     }
     
