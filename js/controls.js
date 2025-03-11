@@ -228,14 +228,22 @@ function updateControls(delta) {
         // Move player
         const moveDistance = speed * delta;
         
+        // Calculate new position
+        const newX = player.position.x + moveDirection.x * moveDistance;
+        const newZ = player.position.z + moveDirection.z * moveDistance;
+        
         // Check collision before moving
         if (!checkCollision(moveDirection, moveDistance)) {
-            player.position.x += moveDirection.x * moveDistance;
-            player.position.z += moveDirection.z * moveDistance;
+            // Update player position
+            player.position.x = newX;
+            player.position.z = newZ;
+            
+            // Update player height based on terrain
+            const terrainHeight = getTerrainHeight(player.position.x, player.position.z);
+            player.position.y = terrainHeight + 1.7; // Player eye height above terrain
             
             // Update camera position
-            camera.position.x = player.position.x;
-            camera.position.z = player.position.z;
+            camera.position.copy(player.position);
         }
     }
 }
@@ -249,7 +257,9 @@ function checkCollision(direction, distance) {
         distance + 0.5 // Add a small buffer
     );
     
-    const collisionObjects = scene.children.filter(obj => obj.isCollidable);
+    const collisionObjects = scene.children.filter(obj => 
+        obj.isCollidable && !obj.isTerrain // Skip terrain for horizontal collisions
+    );
     const intersects = raycaster.intersectObjects(collisionObjects, true);
     
     return intersects.length > 0;

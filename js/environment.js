@@ -1,16 +1,6 @@
 function createEnvironment() {
-    // Create ground - DARKER grass color
-    const groundGeometry = new THREE.PlaneGeometry(1000, 1000);
-    const groundMaterial = new THREE.MeshLambertMaterial({ 
-        color: 0x227722, // Darker green for grass (changed from 0x33aa33)
-        side: THREE.DoubleSide
-    });
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.y = 0;
-    ground.receiveShadow = true;
-    ground.isCollidable = true;
-    scene.add(ground);
+    // Create terrain instead of flat ground
+    createTerrain();
     
     // Create sky - change color to a clearer blue
     scene.background = new THREE.Color(0x87CEEB); // Sky blue color
@@ -62,11 +52,11 @@ function createEnvironment() {
     // Add more clouds - 35 instead of 10
     createClouds(35);
     
-    // Add trees
-    createTrees(100);
+    // Create trees positioned on terrain
+    createTreesOnTerrain(100);
     
-    // Add rocks
-    createRocks(50);
+    // Create rocks positioned on terrain
+    createRocksOnTerrain(50);
     
     // Add advertising blimps after clouds
     createBlimpsWithText(3);
@@ -105,45 +95,47 @@ function createSkybox() {
     scene.add(skybox);
 }
 
-function createTrees(count) {
-    // Simple tree model
+function createTreesOnTerrain(count) {
     for (let i = 0; i < count; i++) {
         const x = Math.random() * 400 - 200;
         const z = Math.random() * 400 - 200;
         
         // Don't place trees too close to the player
-        if (Math.abs(x) < 10 && Math.abs(z) < 10) continue;
+        if (Math.abs(x) < 15 && Math.abs(z) < 15) continue;
         
-        // Tree trunk
+        // Get height at this position
+        const y = getTerrainHeight(x, z);
+        
+        // Create tree trunk
         const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.7, 5, 8);
         const trunkMaterial = new THREE.MeshLambertMaterial({ 
             color: 0x9E6B4A,
-            emissive: 0x3E2B1A, // Add emissive to brighten
-            emissiveIntensity: 0.1 // Lower intensity
+            emissive: 0x3E2B1A,
+            emissiveIntensity: 0.1
         });
         const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-        trunk.position.set(x, 2.5, z);
+        trunk.position.set(x, y + 2.5, z); // Position on terrain
         trunk.castShadow = true;
         trunk.receiveShadow = true;
         trunk.isCollidable = true;
         scene.add(trunk);
         
-        // Tree top (leaves)
+        // Create tree top
         const leavesGeometry = new THREE.ConeGeometry(3, 7, 8);
         const leavesMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0x22AA22, // Brighter green
+            color: 0x22AA22,
             emissive: 0x005500,
-            emissiveIntensity: 0.1 // Lower intensity
+            emissiveIntensity: 0.1
         });
         const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
-        leaves.position.set(x, 8, z);
+        leaves.position.set(x, y + 8, z); // Position on terrain
         leaves.castShadow = true;
         leaves.isCollidable = true;
         scene.add(leaves);
     }
 }
 
-function createRocks(count) {
+function createRocksOnTerrain(count) {
     for (let i = 0; i < count; i++) {
         const x = Math.random() * 400 - 200;
         const z = Math.random() * 400 - 200;
@@ -151,6 +143,9 @@ function createRocks(count) {
         
         // Don't place rocks too close to the player
         if (Math.abs(x) < 5 && Math.abs(z) < 5) continue;
+        
+        // Get height at this position
+        const y = getTerrainHeight(x, z);
         
         const rockGeometry = new THREE.DodecahedronGeometry(size, 0);
         const rockMaterial = new THREE.MeshLambertMaterial({ 
@@ -164,7 +159,7 @@ function createRocks(count) {
         rock.rotation.y = Math.random() * Math.PI;
         rock.rotation.z = Math.random() * Math.PI;
         
-        rock.position.set(x, size / 2, z);
+        rock.position.set(x, y + size / 2, z); // Position on terrain
         rock.castShadow = true;
         rock.receiveShadow = true;
         rock.isCollidable = true;

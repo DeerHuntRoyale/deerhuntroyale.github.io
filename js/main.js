@@ -27,21 +27,26 @@ function init() {
     renderer.shadowMap.enabled = true;
     document.getElementById('game-container').appendChild(renderer.domElement);
     
-    // Setup player and controls
+    // Setup player with initial position
     player = {
-        position: new THREE.Vector3(0, 1.7, 0),
+        position: new THREE.Vector3(0, 1.7, 0), // Initial position
         direction: new THREE.Vector3(0, 0, -1),
-        speed: 5, // Movement speed
-        turnSpeed: 0.002, // Mouse sensitivity
+        speed: 5,
+        turnSpeed: 0.002,
         canShoot: true,
-        reloadTime: 1000, // Reload time in ms
+        reloadTime: 1000,
     };
     
     // Initialize controls
     initControls();
     
-    // Create environment
+    // Create environment (including terrain)
     createEnvironment();
+    
+    // Position player on terrain after terrain is created
+    const terrainHeight = getTerrainHeight(0, 0);
+    player.position.y = terrainHeight + 1.7; // Player eye height
+    camera.position.copy(player.position);
     
     // Spawn initial deer
     for (let i = 0; i < 5; i++) {
