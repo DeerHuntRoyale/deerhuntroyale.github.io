@@ -16,15 +16,21 @@ function createEnvironment() {
     scene.background = new THREE.Color(0x87CEEB); // Sky blue color
     scene.fog = new THREE.FogExp2(0x87CEEB, 0.002);
     
-    // Add ambient light
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+    // Increase ambient light intensity to brighten shadows
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.7); // Increased from 0.4 to 0.7
     scene.add(ambientLight);
+    
+    // Add hemisphere light for more natural environmental lighting
+    const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x556B2F, 0.6);
+    scene.add(hemisphereLight);
     
     // Add directional light (sun)
     const sunPosition = new THREE.Vector3(100, 150, 50);
-    const sunLight = new THREE.DirectionalLight(0xffffcc, 1.2);
+    const sunLight = new THREE.DirectionalLight(0xffffcc, 1.0); // Reduced intensity slightly
     sunLight.position.copy(sunPosition);
     sunLight.castShadow = true;
+    
+    // Improve shadow appearance
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
     sunLight.shadow.camera.near = 0.5;
@@ -33,6 +39,12 @@ function createEnvironment() {
     sunLight.shadow.camera.right = 100;
     sunLight.shadow.camera.top = 100;
     sunLight.shadow.camera.bottom = -100;
+    
+    // Soften shadows
+    sunLight.shadow.bias = -0.0005; // Reduce shadow acne
+    sunLight.shadow.radius = 3; // Blur shadow edges
+    sunLight.shadow.normalBias = 0.05; // Additional bias for normal-facing surfaces
+    
     scene.add(sunLight);
     
     // Create visible sun
@@ -109,9 +121,13 @@ function createTrees(count) {
         // Don't place trees too close to the player
         if (Math.abs(x) < 10 && Math.abs(z) < 10) continue;
         
-        // Tree trunk
+        // Tree trunk - slightly brighter brown color
         const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.7, 5, 8);
-        const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+        const trunkMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0x9E6B4A, // Brighter brown
+            emissive: 0x221100, // Slight emissive to brighten dark areas
+            emissiveIntensity: 0.1
+        });
         const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
         trunk.position.set(x, 2.5, z);
         trunk.castShadow = true;
@@ -119,9 +135,13 @@ function createTrees(count) {
         trunk.isCollidable = true;
         scene.add(trunk);
         
-        // Tree top (leaves)
+        // Tree top (leaves) - brighter green
         const leavesGeometry = new THREE.ConeGeometry(3, 7, 8);
-        const leavesMaterial = new THREE.MeshLambertMaterial({ color: 0x005500 });
+        const leavesMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0x116611, // Brighter green
+            emissive: 0x002200, // Slight emissive to brighten dark areas
+            emissiveIntensity: 0.1
+        });
         const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
         leaves.position.set(x, 8, z);
         leaves.castShadow = true;
