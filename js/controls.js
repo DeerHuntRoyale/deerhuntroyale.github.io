@@ -102,11 +102,12 @@ function onMouseMove(event) {
 }
 
 function onMouseDown(event) {
-    if (!isPointerLocked) {
+    // Only request pointer lock if the game is active
+    if (isGameActive && !isPointerLocked) {
         renderer.domElement.requestPointerLock();
     }
     
-    if (event.button === 0) { // Left click
+    if (event.button === 0 && isGameActive) { // Left click and game is active
         shoot();
     }
 }

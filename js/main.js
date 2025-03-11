@@ -57,14 +57,18 @@ function startGame() {
     document.getElementById('start-screen').style.display = 'none';
     isGameActive = true;
     
-    // Lock pointer
+    // Lock pointer only after the game has started
     renderer.domElement.requestPointerLock = renderer.domElement.requestPointerLock || 
-                                             renderer.domElement.mozRequestPointerLock ||
-                                             renderer.domElement.webkitRequestPointerLock;
+                                           renderer.domElement.mozRequestPointerLock ||
+                                           renderer.domElement.webkitRequestPointerLock;
     renderer.domElement.requestPointerLock();
     
     // Start animation loop
     animate(0);
+    
+    // Update UI
+    updateScore();
+    updateAmmo();
 }
 
 function onWindowResize() {
