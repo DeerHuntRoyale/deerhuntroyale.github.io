@@ -12,13 +12,18 @@ function createEnvironment() {
     ground.isCollidable = true;
     scene.add(ground);
     
+    // Create sky - change color to a clearer blue
+    scene.background = new THREE.Color(0x87CEEB); // Sky blue color
+    scene.fog = new THREE.FogExp2(0x87CEEB, 0.002);
+    
     // Add ambient light
-    const ambientLight = new THREE.AmbientLight(0x404040);
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
     scene.add(ambientLight);
     
     // Add directional light (sun)
-    const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    sunLight.position.set(100, 100, 50);
+    const sunPosition = new THREE.Vector3(100, 150, 50);
+    const sunLight = new THREE.DirectionalLight(0xffffcc, 1.2);
+    sunLight.position.copy(sunPosition);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
@@ -30,8 +35,27 @@ function createEnvironment() {
     sunLight.shadow.camera.bottom = -100;
     scene.add(sunLight);
     
-    // Add skybox
-    createSkybox();
+    // Create visible sun
+    const sunGeometry = new THREE.SphereGeometry(10, 32, 32);
+    const sunMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0xffff99,
+        emissive: 0xffff00,
+        emissiveIntensity: 1
+    });
+    const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+    sun.position.copy(sunPosition);
+    scene.add(sun);
+    
+    // Create a subtle glow effect for the sun
+    const sunGlowGeometry = new THREE.SphereGeometry(15, 32, 32);
+    const sunGlowMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0xffff44,
+        transparent: true,
+        opacity: 0.3
+    });
+    const sunGlow = new THREE.Mesh(sunGlowGeometry, sunGlowMaterial);
+    sunGlow.position.copy(sunPosition);
+    scene.add(sunGlow);
     
     // Add trees
     createTrees(100);
