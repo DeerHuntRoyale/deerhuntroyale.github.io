@@ -57,8 +57,8 @@ function createEnvironment() {
     sunGlow.position.copy(sunPosition);
     scene.add(sunGlow);
     
-    // Add clouds
-    createClouds(10); // Just 10 clouds - not too many
+    // Add more clouds - 35 instead of 10
+    createClouds(35);
     
     // Add trees
     createTrees(100);
@@ -161,24 +161,52 @@ function createRocks(count) {
 
 function createCloudTexture() {
     const canvas = document.createElement('canvas');
-    canvas.width = 128;
-    canvas.height = 128;
+    canvas.width = 256;
+    canvas.height = 256;
     const context = canvas.getContext('2d');
     
-    // Create a radial gradient
-    const gradient = context.createRadialGradient(
-        64, 64, 0,    // Inner circle center and radius
-        64, 64, 64    // Outer circle center and radius
-    );
+    // Create a more complex cloud texture with a less circular shape
     
-    // Add color stops
-    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');   // Center: solid white
-    gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.8)'); // Mid: semi-transparent
-    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');   // Edge: transparent
+    // Start with a white background with some transparency
+    context.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    context.fillRect(0, 0, 256, 256);
     
-    // Fill with gradient
+    // Add several overlapping gradient circles to create a fluffy look
+    const numCircles = 8;
+    for (let i = 0; i < numCircles; i++) {
+        // Random position near center
+        const x = 128 + (Math.random() - 0.5) * 80;
+        const y = 128 + (Math.random() - 0.5) * 60;
+        
+        // Random radius
+        const radius = Math.random() * 60 + 40;
+        
+        // Create gradient
+        const gradient = context.createRadialGradient(
+            x, y, 0,
+            x, y, radius
+        );
+        
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+        gradient.addColorStop(0.6, 'rgba(255, 255, 255, 0.4)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
+        context.fillStyle = gradient;
+        context.beginPath();
+        context.arc(x, y, radius, 0, Math.PI * 2);
+        context.fill();
+    }
+    
+    // Create elongated gradient for more stretched cloud look
+    const gradient = context.createLinearGradient(50, 128, 206, 128);
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+    gradient.addColorStop(0.2, 'rgba(255, 255, 255, 0.4)');
+    gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.6)');
+    gradient.addColorStop(0.8, 'rgba(255, 255, 255, 0.4)');
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    
     context.fillStyle = gradient;
-    context.fillRect(0, 0, 128, 128);
+    context.fillRect(50, 98, 156, 60);
     
     const texture = new THREE.CanvasTexture(canvas);
     return texture;
@@ -189,23 +217,51 @@ function createClouds(count) {
     const cloudTexture = createCloudTexture();
     
     for (let i = 0; i < count; i++) {
+        // Create a cloud group (multiple planes for more realistic shape)
+        const cloud = new THREE.Group();
+        
         // Random cloud size
-        const size = Math.random() * 30 + 20;
+        const baseSize = Math.random() * 30 + 20;
         
-        // Create cloud plane with transparent material
-        const cloudGeometry = new THREE.PlaneGeometry(size, size);
-        const cloudMaterial = new THREE.MeshBasicMaterial({
-            map: cloudTexture,
-            transparent: true,
-            opacity: Math.random() * 0.5 + 0.5, // Varying opacity
-            depthWrite: false, // Prevents z-fighting between clouds
-            side: THREE.DoubleSide
-        });
+        // Number of billboards per cloud (3-7)
+        const numBillboards = Math.floor(Math.random() * 5) + 3;
         
-        const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
+        // Create multiple billboards for each cloud
+        for (let j = 0; j < numBillboards; j++) {
+            // Vary the size of each billboard 
+            const size = baseSize * (0.6 + Math.random() * 0.8);
+            
+            // Create a cloud plane with transparent material
+            const cloudGeometry = new THREE.PlaneGeometry(size, size * (0.6 + Math.random() * 0.4));
+            const cloudMaterial = new THREE.MeshBasicMaterial({
+                map: cloudTexture,
+                transparent: true,
+                opacity: Math.random() * 0.3 + 0.4, // Varying opacity
+                depthWrite: false,
+                side: THREE.DoubleSide
+            });
+            
+            const cloudPart = new THREE.Mesh(cloudGeometry, cloudMaterial);
+            
+            // Position each billboard slightly offset from center
+            cloudPart.position.set(
+                (Math.random() - 0.5) * baseSize * 0.6,
+                (Math.random() - 0.5) * baseSize * 0.2,
+                (Math.random() - 0.5) * baseSize * 0.6
+            );
+            
+            // Random rotation for variety
+            cloudPart.rotation.z = Math.random() * Math.PI * 2;
+            
+            // Always face the camera
+            cloudPart.lookAt(0, cloudPart.position.y, 0);
+            
+            // Add to cloud group
+            cloud.add(cloudPart);
+        }
         
         // Position clouds randomly in the sky
-        const radius = Math.random() * 200 + 100; // Distance from center
+        const radius = Math.random() * 250 + 150; // Distance from center
         const angle = Math.random() * Math.PI * 2; // Random angle
         const height = Math.random() * 50 + 100; // Height above ground
         
@@ -215,17 +271,15 @@ function createClouds(count) {
             Math.cos(angle) * radius
         );
         
-        // Random rotation for variety
-        cloud.rotation.z = Math.random() * Math.PI * 2;
-        
         // Add drift animation data
         cloud.userData = {
-            driftSpeed: Math.random() * 0.5 + 0.1,
+            driftSpeed: Math.random() * 0.4 + 0.1,
             driftDirection: new THREE.Vector3(
                 Math.random() * 2 - 1,
                 0,
                 Math.random() * 2 - 1
-            ).normalize()
+            ).normalize(),
+            rotationSpeed: (Math.random() - 0.5) * 0.01 // Slow rotation
         };
         
         // Add cloud to scene
@@ -237,7 +291,7 @@ function createClouds(count) {
     }
 }
 
-// Add this to your animate function in main.js:
+// Update animate function for more cloud effects
 function animate(time) {
     // ... existing code ...
     
@@ -247,8 +301,14 @@ function animate(time) {
             const speed = cloud.userData.driftSpeed * delta;
             const dir = cloud.userData.driftDirection;
             
+            // Move cloud
             cloud.position.x += dir.x * speed;
             cloud.position.z += dir.z * speed;
+            
+            // Slowly rotate the cloud for more dynamic movement
+            if (cloud.userData.rotationSpeed) {
+                cloud.rotation.y += cloud.userData.rotationSpeed * delta;
+            }
             
             // If cloud drifts too far, reset its position on the opposite side
             const distanceFromCenter = Math.sqrt(
@@ -256,10 +316,10 @@ function animate(time) {
                 cloud.position.z * cloud.position.z
             );
             
-            if (distanceFromCenter > 300) {
+            if (distanceFromCenter > 350) {
                 const angle = Math.atan2(cloud.position.x, cloud.position.z);
                 const newAngle = angle + Math.PI; // Opposite direction
-                const radius = 250; // Reset distance
+                const radius = 300; // Reset distance
                 
                 cloud.position.x = Math.sin(newAngle) * radius;
                 cloud.position.z = Math.cos(newAngle) * radius;
