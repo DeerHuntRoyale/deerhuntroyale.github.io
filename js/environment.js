@@ -1,8 +1,8 @@
 function createEnvironment() {
-    // Create ground
+    // Create ground - DARKER grass color
     const groundGeometry = new THREE.PlaneGeometry(1000, 1000);
     const groundMaterial = new THREE.MeshLambertMaterial({ 
-        color: 0x33aa33,
+        color: 0x227722, // Darker green for grass (changed from 0x33aa33)
         side: THREE.DoubleSide
     });
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
@@ -16,23 +16,25 @@ function createEnvironment() {
     scene.background = new THREE.Color(0x87CEEB); // Sky blue color
     scene.fog = new THREE.FogExp2(0x87CEEB, 0.002);
     
-    // Add ambient light
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+    // Moderate ambient light - not too bright, not too dark
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.6); // Moderate ambient light
     scene.add(ambientLight);
+    
+    // Add hemisphere light for natural sky illumination (bright blue from sky, greenish from ground)
+    const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x33aa33, 0.5);
+    scene.add(hemisphereLight);
     
     // Add directional light (sun)
     const sunPosition = new THREE.Vector3(100, 150, 50);
-    const sunLight = new THREE.DirectionalLight(0xffffcc, 1.2);
+    const sunLight = new THREE.DirectionalLight(0xffffcc, 1);
     sunLight.position.copy(sunPosition);
+    
+    // Soften shadows
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
-    sunLight.shadow.camera.near = 0.5;
-    sunLight.shadow.camera.far = 500;
-    sunLight.shadow.camera.left = -100;
-    sunLight.shadow.camera.right = 100;
-    sunLight.shadow.camera.top = 100;
-    sunLight.shadow.camera.bottom = -100;
+    sunLight.shadow.bias = -0.0005;
+    sunLight.shadow.radius = 2; // Soften shadow edges
     scene.add(sunLight);
     
     // Create visible sun
@@ -67,7 +69,7 @@ function createEnvironment() {
     createRocks(50);
     
     // Add advertising blimps after clouds
-    createBlimps(3); // Just a few blimps
+    createBlimpsWithText(3);
 }
 
 function createSkybox() {
@@ -114,7 +116,11 @@ function createTrees(count) {
         
         // Tree trunk
         const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.7, 5, 8);
-        const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+        const trunkMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0x9E6B4A,
+            emissive: 0x3E2B1A, // Add emissive to brighten
+            emissiveIntensity: 0.1 // Lower intensity
+        });
         const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
         trunk.position.set(x, 2.5, z);
         trunk.castShadow = true;
@@ -124,7 +130,11 @@ function createTrees(count) {
         
         // Tree top (leaves)
         const leavesGeometry = new THREE.ConeGeometry(3, 7, 8);
-        const leavesMaterial = new THREE.MeshLambertMaterial({ color: 0x005500 });
+        const leavesMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0x22AA22, // Brighter green
+            emissive: 0x005500,
+            emissiveIntensity: 0.1 // Lower intensity
+        });
         const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
         leaves.position.set(x, 8, z);
         leaves.castShadow = true;
@@ -294,28 +304,53 @@ function createClouds(count) {
     }
 }
 
-function createBlimps(count) {
-    // Create texture maps for each blimp
+function createBlimpsWithText(count) {
+    // Create textures for different blimps
     const blimpTextures = [
-        createBlimpTexture('Campbell\'s', 0xffff00, 0x0000aa), // Yellow on blue like Goodyear
-        createBlimpTexture('Hunt Pro', 0xffffff, 0x008800),    // White on green
-        createBlimpTexture('DeerhuntRoyale', 0xffff00, 0xaa0000)  // Yellow on red
+        createBlimpTexture('Campbell\'s', 0xffff00, 0xaa0000), // Yellow on RED
+        createBlimpTexture('Hunt Pro', 0xffffff, 0x006600),    // White on DARK GREEN
+        createBlimpTexture('DeerhuntRoyale', 0xffff00, 0x0000aa)  // Yellow on BLUE
     ];
     
     for (let i = 0; i < count; i++) {
-        // Create a simple elongated sphere for the blimp
-        const blimpGeometry = new THREE.SphereGeometry(15, 32, 16);
-        blimpGeometry.scale(2.5, 1, 1);
+        // Create a blimp group
+        const blimp = new THREE.Group();
         
-        // Apply the texture to the blimp
-        const blimpMaterial = new THREE.MeshLambertMaterial({
-            map: blimpTextures[i % blimpTextures.length],
+        // Create the main blimp
+        const bodyGeometry = new THREE.SphereGeometry(15, 32, 16);
+        bodyGeometry.scale(2.5, 1, 1);
+        
+        // Apply solid color based on the background color from texture
+        const bodyMaterial = new THREE.MeshLambertMaterial({ 
+            color: blimpTextures[i].userData.bgColor,
             side: THREE.DoubleSide
         });
         
-        const blimp = new THREE.Mesh(blimpGeometry, blimpMaterial);
+        const blimpBody = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        blimp.add(blimpBody);
         
-        // Position the blimp in the sky
+        // Create TEXT PLANES that are much larger and more visible
+        const textGeometry = new THREE.PlaneGeometry(40, 20); // LARGER text planes
+        const textMaterial = new THREE.MeshBasicMaterial({
+            map: blimpTextures[i],
+            transparent: true,
+            side: THREE.DoubleSide,
+            depthTest: true // Re-enable depth test
+        });
+        
+        // Left side text
+        const leftText = new THREE.Mesh(textGeometry, textMaterial);
+        leftText.position.set(0, 0, -8); // Position slightly outside the blimp
+        leftText.rotation.y = Math.PI / 2;
+        blimp.add(leftText);
+        
+        // Right side text (same)
+        const rightText = new THREE.Mesh(textGeometry, textMaterial);
+        rightText.position.set(0, 0, 8); // Position slightly outside the blimp
+        rightText.rotation.y = -Math.PI / 2;
+        blimp.add(rightText);
+        
+        // Position the blimp
         const angle = (i / count) * Math.PI * 2;
         const radius = 150;
         const height = 100;
@@ -326,8 +361,8 @@ function createBlimps(count) {
             Math.cos(angle) * radius
         );
         
-        // Rotate blimp to be horizontal and point in the direction of movement
-        blimp.rotation.y = angle + Math.PI / 2;
+        // Rotate to face center
+        blimp.lookAt(0, blimp.position.y, 0);
         
         // Add to scene
         scene.add(blimp);
@@ -344,31 +379,21 @@ function createBlimpTexture(text, textColor, bgColor) {
     canvas.height = 512;
     const context = canvas.getContext('2d');
     
-    // Create a UV mapping for a sphere that puts the text on the sides
+    // Fill with TRANSPARENT background - this is key for seeing the text only
+    context.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Fill the entire canvas with the background color
-    context.fillStyle = new THREE.Color(bgColor).getStyle();
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Add horizontal stripes like the Goodyear blimp
+    // Add HUGE, BOLD text
     context.fillStyle = new THREE.Color(textColor).getStyle();
-    context.fillRect(0, 0, canvas.width, 20);  // Top stripe
-    context.fillRect(0, canvas.height - 20, canvas.width, 20);  // Bottom stripe
-    
-    // Draw vertical lines at front and back
-    context.fillRect(0, 0, 20, canvas.height);  // Front
-    context.fillRect(canvas.width - 20, 0, 20, canvas.height);  // Back
-    
-    // Add text along the middle
-    context.fillStyle = new THREE.Color(textColor).getStyle();
-    context.font = 'bold 120px Arial';
+    context.font = 'bold 200px Arial'; // MUCH larger text
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    
-    // Draw text in the middle section
     context.fillText(text, canvas.width / 2, canvas.height / 2);
     
-    return new THREE.CanvasTexture(canvas);
+    // Store color data for reference
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.userData = { textColor: textColor, bgColor: bgColor };
+    
+    return texture;
 }
 
 // Update animate function for more cloud effects
@@ -421,8 +446,8 @@ function animate(time) {
             blimp.position.x = Math.sin(newAngle) * radius;
             blimp.position.z = Math.cos(newAngle) * radius;
             
-            // Rotate to follow path
-            blimp.rotation.y = newAngle + Math.PI / 2;
+            // Rotate to follow path - always face center
+            blimp.lookAt(0, blimp.position.y, 0);
             
             // Very subtle wobble
             blimp.position.y += Math.sin(Date.now() * 0.001) * 0.05;
