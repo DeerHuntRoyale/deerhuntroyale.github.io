@@ -5,7 +5,9 @@ const keys = {
     d: false,
     space: false,
     shift: false,
-    r: false
+    r: false,
+    q: false,  // Zoom out
+    e: false   // Zoom in
 };
 
 let isPointerLocked = false;
@@ -29,6 +31,14 @@ function initControls() {
                 keys.r = true;
                 reload();
                 break;
+            case 'q': 
+                keys.q = true; 
+                zoomOut();
+                break;
+            case 'e': 
+                keys.e = true; 
+                zoomIn();
+                break;
         }
     });
 
@@ -41,6 +51,8 @@ function initControls() {
             case ' ': keys.space = false; break;
             case 'shift': keys.shift = false; break;
             case 'r': keys.r = false; break;
+            case 'q': keys.q = false; break;
+            case 'e': keys.e = false; break;
         }
     });
 
@@ -230,4 +242,14 @@ function checkCollision(direction, distance) {
     const intersects = raycaster.intersectObjects(collisionObjects, true);
     
     return intersects.length > 0;
+}
+
+function zoomIn() {
+    if (!isGameActive) return;
+    zoomLevel = Math.min(3, zoomLevel + 0.1);
+}
+
+function zoomOut() {
+    if (!isGameActive) return;
+    zoomLevel = Math.max(1, zoomLevel - 0.1);
 } 
