@@ -295,90 +295,30 @@ function createClouds(count) {
 }
 
 function createBlimps(count) {
-    // Create a few different advertisement textures
-    const adTextures = [
-        createAdTexture('Campbell\'s Soup', 0xff0000),
-        createAdTexture('Hunt Responsibly', 0x0077ff),
-        createAdTexture('Outdoor Gear', 0x009900)
+    // Create texture maps for each blimp
+    const blimpTextures = [
+        createBlimpTexture('Campbell\'s', 0xffff00, 0x0000aa), // Yellow on blue like Goodyear
+        createBlimpTexture('Hunt Pro', 0xffffff, 0x008800),    // White on green
+        createBlimpTexture('DeerhuntRoyale', 0xffff00, 0xaa0000)  // Yellow on red
     ];
     
     for (let i = 0; i < count; i++) {
-        // Create a blimp group
-        const blimp = new THREE.Group();
+        // Create a simple elongated sphere for the blimp
+        const blimpGeometry = new THREE.SphereGeometry(15, 32, 16);
+        blimpGeometry.scale(2.5, 1, 1);
         
-        // Create the main blimp body (elongated ellipsoid)
-        const bodyGeometry = new THREE.SphereGeometry(10, 16, 12);
-        bodyGeometry.scale(2.5, 1, 1);
-        
-        const bodyMaterial = new THREE.MeshLambertMaterial({
-            color: 0xeeeeee,
-            emissive: 0x333333,
-            emissiveIntensity: 0.1
-        });
-        
-        const blimpBody = new THREE.Mesh(bodyGeometry, bodyMaterial);
-        blimp.add(blimpBody);
-        
-        // Create the gondola (cabin) under the blimp
-        const gondolaGeometry = new THREE.BoxGeometry(6, 2, 2);
-        const gondolaMaterial = new THREE.MeshLambertMaterial({
-            color: 0x333333
-        });
-        
-        const gondola = new THREE.Mesh(gondolaGeometry, gondolaMaterial);
-        gondola.position.y = -5;
-        blimp.add(gondola);
-        
-        // Create fins at the back
-        const finGeometry = new THREE.ConeGeometry(2, 5, 4);
-        finGeometry.rotateX(Math.PI / 2);
-        
-        const finMaterial = new THREE.MeshLambertMaterial({
-            color: 0xdddddd
-        });
-        
-        // Top fin
-        const topFin = new THREE.Mesh(finGeometry, finMaterial);
-        topFin.position.set(-15, 0, 0);
-        topFin.rotation.z = Math.PI / 2;
-        blimp.add(topFin);
-        
-        // Bottom fin
-        const bottomFin = new THREE.Mesh(finGeometry, finMaterial);
-        bottomFin.position.set(-15, 0, 0);
-        bottomFin.rotation.z = -Math.PI / 2;
-        blimp.add(bottomFin);
-        
-        // Side fin
-        const sideFin = new THREE.Mesh(finGeometry, finMaterial);
-        sideFin.position.set(-15, 0, 0);
-        sideFin.rotation.y = Math.PI / 2;
-        blimp.add(sideFin);
-        
-        // Create billboard on both sides of the blimp
-        const billboardGeometry = new THREE.PlaneGeometry(20, 8);
-        const billboardMaterial = new THREE.MeshBasicMaterial({
-            map: adTextures[i % adTextures.length],
-            transparent: true,
+        // Apply the texture to the blimp
+        const blimpMaterial = new THREE.MeshLambertMaterial({
+            map: blimpTextures[i % blimpTextures.length],
             side: THREE.DoubleSide
         });
         
-        // Left side billboard
-        const billboardLeft = new THREE.Mesh(billboardGeometry, billboardMaterial);
-        billboardLeft.position.set(0, 0, -6);
-        billboardLeft.rotation.y = Math.PI / 2;
-        blimp.add(billboardLeft);
+        const blimp = new THREE.Mesh(blimpGeometry, blimpMaterial);
         
-        // Right side billboard (same ad on both sides)
-        const billboardRight = new THREE.Mesh(billboardGeometry, billboardMaterial);
-        billboardRight.position.set(0, 0, 6);
-        billboardRight.rotation.y = -Math.PI / 2;
-        blimp.add(billboardRight);
-        
-        // Position the blimp high in the sky
-        const radius = 200 + Math.random() * 150;
-        const angle = (i / count) * Math.PI * 2; // Distribute evenly
-        const height = 180 + Math.random() * 40; // Higher than clouds
+        // Position the blimp in the sky
+        const angle = (i / count) * Math.PI * 2;
+        const radius = 150;
+        const height = 100;
         
         blimp.position.set(
             Math.sin(angle) * radius,
@@ -386,17 +326,10 @@ function createBlimps(count) {
             Math.cos(angle) * radius
         );
         
-        // Rotate to face center
-        blimp.lookAt(0, blimp.position.y, 0);
+        // Rotate blimp to be horizontal and point in the direction of movement
+        blimp.rotation.y = angle + Math.PI / 2;
         
-        // Add blimp movement data
-        blimp.userData = {
-            speed: 0.5 + Math.random() * 0.5,
-            rotationSpeed: (Math.random() - 0.5) * 0.0005,
-            wobblePhase: Math.random() * Math.PI * 2
-        };
-        
-        // Add blimp to scene
+        // Add to scene
         scene.add(blimp);
         
         // Store for animation
@@ -405,28 +338,35 @@ function createBlimps(count) {
     }
 }
 
-// Create advertisement texture with text
-function createAdTexture(text, bgColor) {
+function createBlimpTexture(text, textColor, bgColor) {
     const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 256;
+    canvas.width = 1024;
+    canvas.height = 512;
     const context = canvas.getContext('2d');
     
-    // Fill background
+    // Create a UV mapping for a sphere that puts the text on the sides
+    
+    // Fill the entire canvas with the background color
     context.fillStyle = new THREE.Color(bgColor).getStyle();
-    context.fillRect(0, 0, 512, 256);
+    context.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Add border
-    context.strokeStyle = '#ffffff';
-    context.lineWidth = 10;
-    context.strokeRect(5, 5, 502, 246);
+    // Add horizontal stripes like the Goodyear blimp
+    context.fillStyle = new THREE.Color(textColor).getStyle();
+    context.fillRect(0, 0, canvas.width, 20);  // Top stripe
+    context.fillRect(0, canvas.height - 20, canvas.width, 20);  // Bottom stripe
     
-    // Add text
-    context.fillStyle = '#ffffff';
-    context.font = 'bold 60px Arial';
+    // Draw vertical lines at front and back
+    context.fillRect(0, 0, 20, canvas.height);  // Front
+    context.fillRect(canvas.width - 20, 0, 20, canvas.height);  // Back
+    
+    // Add text along the middle
+    context.fillStyle = new THREE.Color(textColor).getStyle();
+    context.font = 'bold 120px Arial';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    context.fillText(text, 256, 128);
+    
+    // Draw text in the middle section
+    context.fillText(text, canvas.width / 2, canvas.height / 2);
     
     return new THREE.CanvasTexture(canvas);
 }
@@ -468,10 +408,9 @@ function animate(time) {
     }
     
     // Animate blimps
-    if (window.blimps) {
+    if (window.blimps && window.blimps.length > 0) {
         window.blimps.forEach(blimp => {
-            // Circular movement
-            const speed = blimp.userData.speed * delta;
+            const speed = 0.5 * delta;
             const currentAngle = Math.atan2(blimp.position.x, blimp.position.z);
             const newAngle = currentAngle + speed * 0.01;
             const radius = Math.sqrt(
@@ -482,20 +421,11 @@ function animate(time) {
             blimp.position.x = Math.sin(newAngle) * radius;
             blimp.position.z = Math.cos(newAngle) * radius;
             
-            // Slight wobble for more natural movement
-            blimp.userData.wobblePhase += 0.01;
-            blimp.position.y += Math.sin(blimp.userData.wobblePhase) * 0.05;
+            // Rotate to follow path
+            blimp.rotation.y = newAngle + Math.PI / 2;
             
-            // Rotate slightly
-            blimp.rotation.y += blimp.userData.rotationSpeed;
-            
-            // Keep facing center-ish
-            const targetAngle = Math.atan2(-blimp.position.x, -blimp.position.z);
-            blimp.rotation.y = THREE.MathUtils.lerp(
-                blimp.rotation.y,
-                targetAngle,
-                0.02
-            );
+            // Very subtle wobble
+            blimp.position.y += Math.sin(Date.now() * 0.001) * 0.05;
         });
     }
     
