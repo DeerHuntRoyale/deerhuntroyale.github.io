@@ -57,6 +57,9 @@ function createEnvironment() {
     sunGlow.position.copy(sunPosition);
     scene.add(sunGlow);
     
+    // Add clouds
+    createClouds(10); // Just 10 clouds - not too many
+    
     // Add trees
     createTrees(100);
     
@@ -154,4 +157,115 @@ function createRocks(count) {
         rock.isCollidable = true;
         scene.add(rock);
     }
+}
+
+function createCloudTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const context = canvas.getContext('2d');
+    
+    // Create a radial gradient
+    const gradient = context.createRadialGradient(
+        64, 64, 0,    // Inner circle center and radius
+        64, 64, 64    // Outer circle center and radius
+    );
+    
+    // Add color stops
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');   // Center: solid white
+    gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.8)'); // Mid: semi-transparent
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');   // Edge: transparent
+    
+    // Fill with gradient
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, 128, 128);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+}
+
+function createClouds(count) {
+    // Create a cloud texture
+    const cloudTexture = createCloudTexture();
+    
+    for (let i = 0; i < count; i++) {
+        // Random cloud size
+        const size = Math.random() * 30 + 20;
+        
+        // Create cloud plane with transparent material
+        const cloudGeometry = new THREE.PlaneGeometry(size, size);
+        const cloudMaterial = new THREE.MeshBasicMaterial({
+            map: cloudTexture,
+            transparent: true,
+            opacity: Math.random() * 0.5 + 0.5, // Varying opacity
+            depthWrite: false, // Prevents z-fighting between clouds
+            side: THREE.DoubleSide
+        });
+        
+        const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
+        
+        // Position clouds randomly in the sky
+        const radius = Math.random() * 200 + 100; // Distance from center
+        const angle = Math.random() * Math.PI * 2; // Random angle
+        const height = Math.random() * 50 + 100; // Height above ground
+        
+        cloud.position.set(
+            Math.sin(angle) * radius,
+            height,
+            Math.cos(angle) * radius
+        );
+        
+        // Random rotation for variety
+        cloud.rotation.z = Math.random() * Math.PI * 2;
+        
+        // Add drift animation data
+        cloud.userData = {
+            driftSpeed: Math.random() * 0.5 + 0.1,
+            driftDirection: new THREE.Vector3(
+                Math.random() * 2 - 1,
+                0,
+                Math.random() * 2 - 1
+            ).normalize()
+        };
+        
+        // Add cloud to scene
+        scene.add(cloud);
+        
+        // Store reference for animation
+        if (!window.clouds) window.clouds = [];
+        window.clouds.push(cloud);
+    }
+}
+
+// Add this to your animate function in main.js:
+function animate(time) {
+    // ... existing code ...
+    
+    // Animate clouds
+    if (window.clouds) {
+        window.clouds.forEach(cloud => {
+            const speed = cloud.userData.driftSpeed * delta;
+            const dir = cloud.userData.driftDirection;
+            
+            cloud.position.x += dir.x * speed;
+            cloud.position.z += dir.z * speed;
+            
+            // If cloud drifts too far, reset its position on the opposite side
+            const distanceFromCenter = Math.sqrt(
+                cloud.position.x * cloud.position.x + 
+                cloud.position.z * cloud.position.z
+            );
+            
+            if (distanceFromCenter > 300) {
+                const angle = Math.atan2(cloud.position.x, cloud.position.z);
+                const newAngle = angle + Math.PI; // Opposite direction
+                const radius = 250; // Reset distance
+                
+                cloud.position.x = Math.sin(newAngle) * radius;
+                cloud.position.z = Math.cos(newAngle) * radius;
+            }
+        });
+    }
+    
+    // ... existing code ...
 } 
