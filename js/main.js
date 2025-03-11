@@ -3,8 +3,9 @@ let player, controls;
 let deers = [];
 let score = 0;
 let ammo = 5;
-let maxAmmo = 5;
-let ammoCost = 10; // Cost to buy one ammo
+let maxAmmo = 15;  // Increased max ammo capacity
+let ammoPackSize = 5;  // How many bullets per purchase
+let ammoCost = 10;  // Cost for a pack of ammo
 let isGameActive = false;
 let lastTime = 0;
 let zoomLevel = 1;
@@ -52,6 +53,10 @@ function init() {
     
     // Start game
     document.getElementById('start-button').addEventListener('click', startGame);
+    
+    // Update ammo info text with current values
+    document.querySelector('#start-screen p:nth-child(3)').textContent = 
+        `Press P to purchase ${ammoPackSize} bullets for $${ammoCost}`;
 }
 
 function startGame() {
@@ -91,19 +96,25 @@ function buyAmmo() {
     
     // Check if player has enough money
     if (score >= ammoCost) {
-        // Deduct cost
-        score -= ammoCost;
-        updateScore();
-        
-        // Add ammo
-        ammo = Math.min(maxAmmo, ammo + 1);
-        updateAmmo();
-        
-        // Show purchase message
-        showMessage("Ammo purchased!");
+        // Check if player has room for more ammo
+        if (ammo < maxAmmo) {
+            // Deduct cost
+            score -= ammoCost;
+            updateScore();
+            
+            // Add ammo pack
+            ammo = Math.min(maxAmmo, ammo + ammoPackSize);
+            updateAmmo();
+            
+            // Show purchase message
+            showMessage(`Purchased ${ammoPackSize} bullets!`);
+        } else {
+            // Show max ammo message
+            showMessage(`Ammo full! Max: ${maxAmmo}`);
+        }
     } else {
         // Show insufficient funds message
-        showMessage("Not enough money! Need $" + ammoCost);
+        showMessage(`Not enough money! Need $${ammoCost}`);
     }
 }
 
