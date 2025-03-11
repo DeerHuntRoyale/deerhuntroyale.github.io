@@ -8,7 +8,8 @@ const keys = {
     r: false,
     q: false,  // Zoom out
     e: false,  // Zoom in
-    p: false   // Purchase ammo
+    p: false,  // Purchase ammo
+    f: false   // Harvest deer
 };
 
 let isPointerLocked = false;
@@ -44,6 +45,9 @@ function initControls() {
                 keys.p = true;
                 buyAmmo();
                 break;
+            case 'f':
+                keys.f = true;
+                break;
         }
     });
 
@@ -59,6 +63,7 @@ function initControls() {
             case 'q': keys.q = false; break;
             case 'e': keys.e = false; break;
             case 'p': keys.p = false; break;
+            case 'f': keys.f = false; break;
         }
     });
 

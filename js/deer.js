@@ -13,20 +13,22 @@ function spawnDeer() {
     // Add deer to scene and tracking array
     scene.add(deer);
     
-    // Store deer data
+    // Store deer data with additional properties
     const deerData = {
         model: deer,
         position: new THREE.Vector3(x, 0, z),
         velocity: new THREE.Vector3(0, 0, 0),
         speed: 2 + Math.random() * 2, // Random speed between 2-4
         direction: Math.random() * Math.PI * 2, // Random direction
-        state: 'idle', // idle, running, alert
+        state: 'idle', // idle, running, alert, dead, harvested
         health: 100,
         lastStateChange: Date.now(),
         timers: {
             changeDirection: Math.random() * 5000 + 2000, // 2-7 seconds
             stateChange: Math.random() * 10000 + 5000 // 5-15 seconds
-        }
+        },
+        value: 20, // Money value when harvested
+        isHarvestable: false
     };
     
     // Tag all parts of the deer for raycasting
@@ -57,6 +59,11 @@ function updateDeers(delta) {
     const currentTime = Date.now();
     
     deers.forEach(deer => {
+        // Skip updates for dead deer
+        if (deer.state === 'dead' || deer.state === 'harvested') {
+            return;
+        }
+        
         // Check for state changes
         if (currentTime - deer.lastStateChange > deer.timers.stateChange) {
             changeDeerState(deer);
@@ -132,6 +139,11 @@ function changeDeerState(deer) {
 }
 
 function moveDeer(deer, delta, speed) {
+    // Only move living deer
+    if (deer.state === 'dead' || deer.state === 'harvested') {
+        return;
+    }
+    
     // Calculate movement vector
     const moveX = Math.sin(deer.direction) * speed * delta;
     const moveZ = Math.cos(deer.direction) * speed * delta;
@@ -226,6 +238,9 @@ function createDeerModel() {
     tail.position.set(-1.1, 1.5, 0);
     group.add(tail);
     
+    // Tag the model for easy identification
+    group.isDeer = true;
+    
     return group;
 }
 
@@ -254,4 +269,106 @@ function createAntler() {
     }
     
     return group;
+}
+
+// New function to handle deer death
+function killDeer(deer) {
+    deer.state = 'dead';
+    deer.isHarvestable = true;
+    
+    // Rotate deer to lying position
+    deer.model.rotation.z = Math.PI / 2; // Roll onto side
+    deer.model.position.y = 0.5; // Lower to ground
+    
+    // Play death animation/sound if available
+    playSound('deerDeath');
+    
+    // Add visual indicator for harvestable deer
+    addHarvestIndicator(deer);
+}
+
+// Add harvest indicator above dead deer
+function addHarvestIndicator(deer) {
+    // Create floating text or icon above the deer
+    const indicatorGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+    const indicatorMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0xffff00,
+        transparent: true,
+        opacity: 0.7
+    });
+    const indicator = new THREE.Mesh(indicatorGeometry, indicatorMaterial);
+    
+    // Position above the deer
+    indicator.position.set(0, 2, 0);
+    deer.model.add(indicator);
+    deer.harvestIndicator = indicator;
+    
+    // Add animation
+    animateHarvestIndicator(indicator);
+}
+
+// Animate the harvest indicator to make it noticeable
+function animateHarvestIndicator(indicator) {
+    const startY = indicator.position.y;
+    const animateUp = () => {
+        indicator.position.y = startY + Math.sin(Date.now() * 0.003) * 0.3;
+        
+        if (indicator.parent) { // Only continue if still in scene
+            requestAnimationFrame(animateUp);
+        }
+    };
+    
+    animateUp();
+}
+
+// New function to harvest a deer
+function harvestDeer(deer) {
+    // Remove harvest indicator
+    if (deer.harvestIndicator) {
+        deer.model.remove(deer.harvestIndicator);
+    }
+    
+    // Give player money
+    score += deer.value;
+    updateScore();
+    
+    // Show harvest message
+    showMessage(`Harvested deer: +$${deer.value}`);
+    
+    // Play sound
+    playSound('harvest');
+    
+    // Mark as harvested (not harvestable anymore)
+    deer.isHarvestable = false;
+    deer.state = 'harvested';
+    
+    // Make the deer disappear after a delay
+    setTimeout(() => {
+        removeDeer(deer);
+        // Spawn a new deer somewhere else
+        setTimeout(spawnDeer, 2000);
+    }, 1000);
+}
+
+// Check if player is close enough to harvest a deer
+function checkForHarvest() {
+    if (!isGameActive) return;
+    
+    deers.forEach(deer => {
+        if (deer.isHarvestable) {
+            // Calculate distance between player and deer
+            const distance = deer.position.distanceTo(player.position);
+            
+            // If close enough, show harvest prompt
+            if (distance < 3) {
+                showHarvestPrompt();
+                
+                // If player presses harvest key (F)
+                if (keys.f) {
+                    harvestDeer(deer);
+                    keys.f = false; // Reset to prevent multiple harvests
+                }
+            }
+        }
+    });
 } 

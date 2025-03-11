@@ -57,6 +57,21 @@ function init() {
     // Update ammo info text with current values
     document.querySelector('#start-screen p:nth-child(3)').textContent = 
         `Press P to purchase ${ammoPackSize} bullets for $${ammoCost}`;
+    
+    // Create harvest prompt element
+    const harvestPrompt = document.createElement('div');
+    harvestPrompt.id = 'harvest-prompt';
+    harvestPrompt.textContent = 'Press F to harvest';
+    harvestPrompt.style.position = 'absolute';
+    harvestPrompt.style.bottom = '50%';
+    harvestPrompt.style.left = '50%';
+    harvestPrompt.style.transform = 'translate(-50%, 50%)';
+    harvestPrompt.style.color = 'white';
+    harvestPrompt.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    harvestPrompt.style.padding = '10px';
+    harvestPrompt.style.borderRadius = '5px';
+    harvestPrompt.style.display = 'none';
+    document.getElementById('game-container').appendChild(harvestPrompt);
 }
 
 function startGame() {
@@ -165,16 +180,11 @@ function shoot() {
 }
 
 function handleDeerHit(deer) {
-    // Increase score
-    score += 20; // Increased reward 
-    updateScore();
-    
     // Play hit sound
     playSound('deerHit');
     
-    // Remove deer and spawn a new one
-    removeDeer(deer);
-    setTimeout(spawnDeer, 2000);
+    // Kill the deer instead of removing it
+    killDeer(deer);
 }
 
 function reload() {
@@ -226,8 +236,23 @@ function animate(time) {
     camera.fov = 75 / zoomLevel;
     camera.updateProjectionMatrix();
     
+    // Hide harvest prompt by default each frame
+    hideHarvestPrompt();
+    
+    // Check if player can harvest any deer
+    checkForHarvest();
+    
     // Render scene
     renderer.render(scene, camera);
+}
+
+// Show and hide harvest prompt
+function showHarvestPrompt() {
+    document.getElementById('harvest-prompt').style.display = 'block';
+}
+
+function hideHarvestPrompt() {
+    document.getElementById('harvest-prompt').style.display = 'none';
 }
 
 // Initialize game
