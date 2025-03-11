@@ -53,6 +53,9 @@ function init() {
         spawnDeer();
     }
     
+    // Spawn bunnies
+    spawnInitialBunnies(15); // More bunnies than deer
+    
     // Handle window resize
     window.addEventListener('resize', onWindowResize, false);
     
@@ -169,11 +172,24 @@ function shoot() {
     
     for (let i = 0; i < hits.length; i++) {
         const hit = hits[i];
+        
         // Check if we hit a deer
         if (hit.object.isDeer) {
             // Handle deer hit
             handleDeerHit(hit.object.deerData);
             break;
+        }
+        
+        // Check if we hit a bunny
+        if (hit.object.isBunny) {
+            // Get the bunny data from either the hit object or its parent
+            const bunnyData = hit.object.bunnyData || hit.object.bunnyParent.bunnyData;
+            
+            // Only handle hit if bunny exists and is not already dead
+            if (bunnyData && bunnyData.state !== 'dead') {
+                handleBunnyHit(bunnyData);
+                break;
+            }
         }
     }
     
@@ -190,6 +206,14 @@ function handleDeerHit(deer) {
     
     // Kill the deer instead of removing it
     killDeer(deer);
+}
+
+function handleBunnyHit(bunny) {
+    // Play hit sound
+    playSound('bunnyHit');
+    
+    // Kill the bunny
+    killBunny(bunny);
 }
 
 function reload() {
@@ -234,6 +258,9 @@ function animate(time) {
     // Update deer movement
     updateDeers(delta);
     
+    // Update bunny movement
+    updateBunnies(delta);
+    
     // Update player movement and camera
     updateControls(delta);
     
@@ -258,6 +285,49 @@ function showHarvestPrompt() {
 
 function hideHarvestPrompt() {
     document.getElementById('harvest-prompt').style.display = 'none';
+}
+
+// Add bunny check to the harvest function
+function checkForHarvest() {
+    if (!isGameActive) return;
+    
+    // Check deer
+    deers.forEach(deer => {
+        if (deer.isHarvestable) {
+            // Calculate distance between player and deer
+            const distance = deer.position.distanceTo(player.position);
+            
+            // If close enough, show harvest prompt
+            if (distance < 3) {
+                showHarvestPrompt();
+                
+                // If player presses harvest key (F)
+                if (keys.f) {
+                    harvestDeer(deer);
+                    keys.f = false; // Reset to prevent multiple harvests
+                }
+            }
+        }
+    });
+    
+    // Check bunnies
+    bunnies.forEach(bunny => {
+        if (bunny.isHarvestable) {
+            // Calculate distance between player and bunny
+            const distance = bunny.position.distanceTo(player.position);
+            
+            // If close enough, show harvest prompt
+            if (distance < 3) {
+                showHarvestPrompt();
+                
+                // If player presses harvest key (F)
+                if (keys.f) {
+                    harvestBunny(bunny);
+                    keys.f = false; // Reset to prevent multiple harvests
+                }
+            }
+        }
+    });
 }
 
 // Initialize game
