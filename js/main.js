@@ -344,28 +344,40 @@ function createPlayerRifle() {
     // Create a rifle model
     const rifleGroup = new THREE.Group();
     
-    // Rifle stock (wooden part)
-    const stockGeometry = new THREE.BoxGeometry(0.12, 0.08, 0.4);
+    // Rifle stock (wooden part) - make longer to extend toward player
+    const stockGeometry = new THREE.BoxGeometry(0.12, 0.08, 0.6); // Increased length from 0.4 to 0.6
     const stockMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 }); // Brown wooden color
     const stock = new THREE.Mesh(stockGeometry, stockMaterial);
-    stock.position.set(0, 0, 0.1);
+    stock.position.set(0, 0, 0.2); // Moved backward (toward player) from 0.1 to 0.2
     rifleGroup.add(stock);
     
-    // Rifle barrel (metal part)
-    const barrelGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.6, 8);
+    // Rifle barrel (metal part) - extended length and repositioned
+    const barrelGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.7, 8); // Increased length from 0.6 to 0.7
     const barrelMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 }); // Dark metal color
     const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
     barrel.rotation.x = Math.PI / 2;
-    barrel.position.set(0, 0.04, -0.25);
+    barrel.position.set(0, 0.04, -0.2); // Adjusted z position from -0.25 to -0.2
     rifleGroup.add(barrel);
     
-    // Rifle scope
+    // Rifle scope - moved further back as requested
     const scopeGeometry = new THREE.CylinderGeometry(0.025, 0.025, 0.15, 8);
     const scopeMaterial = new THREE.MeshLambertMaterial({ color: 0x111111 }); // Black color
     const scope = new THREE.Mesh(scopeGeometry, scopeMaterial);
     scope.rotation.x = Math.PI / 2;
-    scope.position.set(0, 0.09, -0.1);
+    scope.position.set(0, 0.09, 0.05); // Moved backward from -0.1 to 0.05
     rifleGroup.add(scope);
+    
+    // Add scope mounts (small connections between scope and rifle)
+    const mountGeometry = new THREE.BoxGeometry(0.03, 0.02, 0.03);
+    const mountMaterial = new THREE.MeshLambertMaterial({ color: 0x222222 }); // Dark metal color
+    
+    const frontMount = new THREE.Mesh(mountGeometry, mountMaterial);
+    frontMount.position.set(0, 0.065, 0);
+    rifleGroup.add(frontMount);
+    
+    const rearMount = new THREE.Mesh(mountGeometry, mountMaterial);
+    rearMount.position.set(0, 0.065, 0.1);
+    rifleGroup.add(rearMount);
     
     // Position the rifle in the bottom-right corner of the camera view
     rifleGroup.position.set(0.3, -0.2, -0.5);
