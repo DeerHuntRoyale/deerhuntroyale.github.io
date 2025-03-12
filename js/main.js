@@ -53,8 +53,8 @@ function init() {
         spawnDeer();
     }
     
-    // Spawn bunnies
-    spawnInitialBunnies(15); // More bunnies than deer
+    // Spawn MANY more bunnies
+    spawnInitialBunnies(10);
     
     // Handle window resize
     window.addEventListener('resize', onWindowResize, false);

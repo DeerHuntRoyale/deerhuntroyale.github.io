@@ -3,12 +3,20 @@
 const bunnies = [];
 
 function spawnBunny() {
-    // Define bunny spawn boundaries (away from player)
+    // Define bunny spawn boundaries with wider distribution
     let x, z;
-    do {
-        x = Math.random() * 400 - 200;
-        z = Math.random() * 400 - 200;
-    } while (Math.sqrt(x*x + z*z) < 30); // Ensure bunny spawns at least 30 units away
+    
+    // Get a more distributed position (use randomPositionInCircle from utils)
+    const position = randomPositionInCircle(0, 0, 300);
+    x = position.x;
+    z = position.z;
+    
+    // Ensure minimum distance from player
+    while (Math.sqrt(x*x + z*z) < 30) {
+        const newPosition = randomPositionInCircle(0, 0, 300);
+        x = newPosition.x;
+        z = newPosition.z;
+    }
     
     // Create bunny model
     const bunny = createBunnyModel();
@@ -25,9 +33,9 @@ function spawnBunny() {
         model: bunny,
         position: new THREE.Vector3(x, y, z),
         velocity: new THREE.Vector3(0, 0, 0),
-        speed: 3 + Math.random() * 3, // Random speed between 3-6 (faster than deer)
-        direction: Math.random() * Math.PI * 2, // Random direction
-        state: 'idle', // idle, hopping, running
+        speed: 2 + Math.random() * 2,
+        direction: Math.random() * Math.PI * 2,
+        state: 'idle',
         lastStateChange: Date.now(),
         timers: {
             changeDirection: Math.random() * 3000 + 1000, // 1-4 seconds
@@ -291,8 +299,8 @@ function moveBunny(bunny, delta, speed) {
         bunny.direction += Math.PI / 2 + Math.random() * Math.PI; // 90-270 degree turn
     }
     
-    // Boundary check - reverse direction if near edge
-    if (Math.abs(bunny.position.x) > 200 || Math.abs(bunny.position.z) > 200) {
+    // Boundary check - increase the playable area for bunnies
+    if (Math.abs(bunny.position.x) > 300 || Math.abs(bunny.position.z) > 300) { // Increased from 200 to 300
         bunny.direction += Math.PI;
     }
 }
@@ -309,6 +317,9 @@ function spawnInitialBunnies(count) {
         spawnBunny();
     }
     console.log(`Spawned ${count} bunnies`);
+    
+    // Start maintaining population after initial spawn
+    setTimeout(maintainBunnyPopulation, 30000); // Wait 30 seconds before first check
 }
 
 // Add function to handle bunny death
@@ -343,6 +354,27 @@ function removeBunny(bunny) {
     if (index !== -1) {
         bunnies.splice(index, 1);
     }
+    
+    // Spawn replacement bunny faster
+    setTimeout(spawnBunny, 1000); // Reduced from 2000 to 1000
+}
+
+// Periodically spawn new bunnies to maintain population
+function maintainBunnyPopulation() {
+    const minDesiredBunnies = 30; // Target bunny population
+    
+    // Check current bunny count
+    if (bunnies.length < minDesiredBunnies) {
+        const bunniesToSpawn = Math.min(3, minDesiredBunnies - bunnies.length);
+        
+        // Spawn up to 3 bunnies at once
+        for (let i = 0; i < bunniesToSpawn; i++) {
+            spawnBunny();
+        }
+    }
+    
+    // Check again in 10 seconds
+    setTimeout(maintainBunnyPopulation, 10000);
 }
 
 // Harvesting function for bunnies
