@@ -80,6 +80,9 @@ function init() {
     harvestPrompt.style.borderRadius = '5px';
     harvestPrompt.style.display = 'none';
     document.getElementById('game-container').appendChild(harvestPrompt);
+    
+    // Create and add rifle model after camera is initialized
+    createPlayerRifle();
 }
 
 function startGame() {
@@ -274,6 +277,12 @@ function animate(time) {
     // Check if player can harvest any deer
     checkForHarvest();
     
+    // Add subtle rifle sway when moving (optional)
+    if (camera.children.length > 0 && (keys.w || keys.a || keys.s || keys.d)) {
+        const rifleModel = camera.children[0];
+        rifleModel.position.y = -0.2 + Math.sin(time * 0.01) * 0.01;
+    }
+    
     // Render scene
     renderer.render(scene, camera);
 }
@@ -328,6 +337,44 @@ function checkForHarvest() {
             }
         }
     });
+}
+
+// Add this new function to create the rifle
+function createPlayerRifle() {
+    // Create a rifle model
+    const rifleGroup = new THREE.Group();
+    
+    // Rifle stock (wooden part)
+    const stockGeometry = new THREE.BoxGeometry(0.12, 0.08, 0.4);
+    const stockMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 }); // Brown wooden color
+    const stock = new THREE.Mesh(stockGeometry, stockMaterial);
+    stock.position.set(0, 0, 0.1);
+    rifleGroup.add(stock);
+    
+    // Rifle barrel (metal part)
+    const barrelGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.6, 8);
+    const barrelMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 }); // Dark metal color
+    const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.set(0, 0.04, -0.25);
+    rifleGroup.add(barrel);
+    
+    // Rifle scope
+    const scopeGeometry = new THREE.CylinderGeometry(0.025, 0.025, 0.15, 8);
+    const scopeMaterial = new THREE.MeshLambertMaterial({ color: 0x111111 }); // Black color
+    const scope = new THREE.Mesh(scopeGeometry, scopeMaterial);
+    scope.rotation.x = Math.PI / 2;
+    scope.position.set(0, 0.09, -0.1);
+    rifleGroup.add(scope);
+    
+    // Position the rifle in the bottom-right corner of the camera view
+    rifleGroup.position.set(0.3, -0.2, -0.5);
+    
+    // Add the rifle to the camera so it moves with the view
+    camera.add(rifleGroup);
+    
+    // Make sure the scene includes the camera for proper rendering
+    scene.add(camera);
 }
 
 // Initialize game
