@@ -9,6 +9,8 @@ let ammoCost = 10;  // Cost for a pack of ammo
 let isGameActive = false;
 let lastTime = 0;
 let zoomLevel = 1;
+let scopeCamera, scopeRenderTarget, scopeTexture;
+const SCOPE_ZOOM = 3; // Magnification level of the scope
 
 // Initialize the game
 function init() {
@@ -80,6 +82,9 @@ function init() {
     harvestPrompt.style.borderRadius = '5px';
     harvestPrompt.style.display = 'none';
     document.getElementById('game-container').appendChild(harvestPrompt);
+    
+    // Set up scope rendering
+    setupScopeRendering();
     
     // Create and add rifle model after camera is initialized
     createPlayerRifle();
@@ -267,6 +272,9 @@ function animate(time) {
     // Update player movement and camera
     updateControls(delta);
     
+    // Update scope camera to match main camera
+    updateScopeView();
+    
     // Apply camera zoom
     camera.fov = 75 / zoomLevel;
     camera.updateProjectionMatrix();
@@ -339,54 +347,107 @@ function checkForHarvest() {
     });
 }
 
-// Add this new function to create the rifle
+// Add this new function to set up scope rendering
+function setupScopeRendering() {
+    // Create a render target texture for the scope
+    scopeRenderTarget = new THREE.WebGLRenderTarget(256, 256);
+    
+    // Create a camera specifically for the scope view
+    scopeCamera = new THREE.PerspectiveCamera(75 / SCOPE_ZOOM, 1, 0.1, 1000);
+    
+    // Initial setup - will be updated every frame to match main camera
+    scopeCamera.position.copy(camera.position);
+    scopeCamera.rotation.copy(camera.rotation);
+}
+
 function createPlayerRifle() {
     // Create a rifle model
     const rifleGroup = new THREE.Group();
     
-    // Rifle stock (wooden part) - keep existing dimensions
+    // Basic rifle stock
     const stockGeometry = new THREE.BoxGeometry(0.12, 0.08, 0.6);
-    const stockMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 }); // Brown wooden color
+    const stockMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
     const stock = new THREE.Mesh(stockGeometry, stockMaterial);
     stock.position.set(0, 0, 0.2);
     rifleGroup.add(stock);
     
-    // Rifle barrel (metal part) - EXTENDED LENGTH and repositioned
-    const barrelGeometry = new THREE.CylinderGeometry(0.02, 0.02, 1.0, 8); // Increased length from 0.7 to 1.0
-    const barrelMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 }); // Dark metal color
+    // Basic barrel
+    const barrelGeometry = new THREE.CylinderGeometry(0.02, 0.02, 1.0, 8);
+    const barrelMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 });
     const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
     barrel.rotation.x = Math.PI / 2;
-    barrel.position.set(0, 0.04, -0.05); // Adjusted z position from -0.2 to -0.05 so it extends further back
+    barrel.position.set(0, 0.04, -0.05);
     rifleGroup.add(barrel);
     
-    // Rifle scope - MOVED FURTHER BACK
+    // Define material first
+    const mountMaterial = new THREE.MeshLambertMaterial({ color: 0x222222 });
+    
+    // Scope cylinder with mount material
     const scopeGeometry = new THREE.CylinderGeometry(0.025, 0.025, 0.15, 8);
-    const scopeMaterial = new THREE.MeshLambertMaterial({ color: 0x111111 }); // Black color
-    const scope = new THREE.Mesh(scopeGeometry, scopeMaterial);
+    const scope = new THREE.Mesh(scopeGeometry, mountMaterial);
     scope.rotation.x = Math.PI / 2;
-    scope.position.set(0, 0.09, 0.15); // Moved back from 0.05 to 0.15
+    scope.position.set(0, 0.09, 0.15);
     rifleGroup.add(scope);
     
-    // Adjust scope mounts to match the new scope position
+    // Lens with 10% SMALLER DIAMETER
+    const lensGeometry = new THREE.CircleGeometry(0.02, 16); // Reduced from 0.025 to 0.0225 (10% smaller)
+    const lensMaterial = new THREE.MeshBasicMaterial({ 
+        map: scopeTexture,
+        side: THREE.DoubleSide,
+        color: 0x00ffff
+    });
+    const lens = new THREE.Mesh(lensGeometry, lensMaterial);
+    
+    // Keep the same position
+    lens.position.set(0, 0.09, 0.226);
+    lens.rotation.set(0, 0, 0);
+    rifleGroup.add(lens);
+    
+    // Simple scope mounts
     const mountGeometry = new THREE.BoxGeometry(0.03, 0.02, 0.03);
-    const mountMaterial = new THREE.MeshLambertMaterial({ color: 0x222222 }); // Dark metal color
     
     const frontMount = new THREE.Mesh(mountGeometry, mountMaterial);
-    frontMount.position.set(0, 0.065, 0.1); // Adjusted from 0 to 0.1
+    frontMount.position.set(0, 0.065, 0.1);
     rifleGroup.add(frontMount);
     
     const rearMount = new THREE.Mesh(mountGeometry, mountMaterial);
-    rearMount.position.set(0, 0.065, 0.2); // Adjusted from 0.1 to 0.2
+    rearMount.position.set(0, 0.065, 0.2);
     rifleGroup.add(rearMount);
     
-    // Position the rifle in the bottom-right corner of the camera view
+    // Position the rifle
     rifleGroup.position.set(0.3, -0.2, -0.5);
     
-    // Add the rifle to the camera so it moves with the view
+    // Add the rifle to the camera
     camera.add(rifleGroup);
-    
-    // Make sure the scene includes the camera for proper rendering
     scene.add(camera);
+}
+
+// Add this function to update the scope view
+function updateScopeView() {
+    // Position scope camera at the same position as main camera
+    scopeCamera.position.copy(camera.position);
+    scopeCamera.rotation.copy(camera.rotation);
+    
+    // Update the projection matrix for zoom
+    scopeCamera.fov = camera.fov / SCOPE_ZOOM;
+    scopeCamera.updateProjectionMatrix();
+    
+    // Temporarily hide the rifle to avoid recursive rendering
+    let rifleVisible = false;
+    if (camera.children.length > 0) {
+        rifleVisible = camera.children[0].visible;
+        camera.children[0].visible = false;
+    }
+    
+    // Render the scene from scope camera to the render target
+    renderer.setRenderTarget(scopeRenderTarget);
+    renderer.render(scene, scopeCamera);
+    renderer.setRenderTarget(null);
+    
+    // Make rifle visible again
+    if (camera.children.length > 0) {
+        camera.children[0].visible = rifleVisible;
+    }
 }
 
 // Initialize game
