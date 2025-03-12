@@ -344,39 +344,39 @@ function createPlayerRifle() {
     // Create a rifle model
     const rifleGroup = new THREE.Group();
     
-    // Rifle stock (wooden part) - make longer to extend toward player
-    const stockGeometry = new THREE.BoxGeometry(0.12, 0.08, 0.6); // Increased length from 0.4 to 0.6
+    // Rifle stock (wooden part) - keep existing dimensions
+    const stockGeometry = new THREE.BoxGeometry(0.12, 0.08, 0.6);
     const stockMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 }); // Brown wooden color
     const stock = new THREE.Mesh(stockGeometry, stockMaterial);
-    stock.position.set(0, 0, 0.2); // Moved backward (toward player) from 0.1 to 0.2
+    stock.position.set(0, 0, 0.2);
     rifleGroup.add(stock);
     
-    // Rifle barrel (metal part) - extended length and repositioned
-    const barrelGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.7, 8); // Increased length from 0.6 to 0.7
+    // Rifle barrel (metal part) - EXTENDED LENGTH and repositioned
+    const barrelGeometry = new THREE.CylinderGeometry(0.02, 0.02, 1.0, 8); // Increased length from 0.7 to 1.0
     const barrelMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 }); // Dark metal color
     const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
     barrel.rotation.x = Math.PI / 2;
-    barrel.position.set(0, 0.04, -0.2); // Adjusted z position from -0.25 to -0.2
+    barrel.position.set(0, 0.04, -0.05); // Adjusted z position from -0.2 to -0.05 so it extends further back
     rifleGroup.add(barrel);
     
-    // Rifle scope - moved further back as requested
+    // Rifle scope - MOVED FURTHER BACK
     const scopeGeometry = new THREE.CylinderGeometry(0.025, 0.025, 0.15, 8);
     const scopeMaterial = new THREE.MeshLambertMaterial({ color: 0x111111 }); // Black color
     const scope = new THREE.Mesh(scopeGeometry, scopeMaterial);
     scope.rotation.x = Math.PI / 2;
-    scope.position.set(0, 0.09, 0.05); // Moved backward from -0.1 to 0.05
+    scope.position.set(0, 0.09, 0.15); // Moved back from 0.05 to 0.15
     rifleGroup.add(scope);
     
-    // Add scope mounts (small connections between scope and rifle)
+    // Adjust scope mounts to match the new scope position
     const mountGeometry = new THREE.BoxGeometry(0.03, 0.02, 0.03);
     const mountMaterial = new THREE.MeshLambertMaterial({ color: 0x222222 }); // Dark metal color
     
     const frontMount = new THREE.Mesh(mountGeometry, mountMaterial);
-    frontMount.position.set(0, 0.065, 0);
+    frontMount.position.set(0, 0.065, 0.1); // Adjusted from 0 to 0.1
     rifleGroup.add(frontMount);
     
     const rearMount = new THREE.Mesh(mountGeometry, mountMaterial);
-    rearMount.position.set(0, 0.065, 0.1);
+    rearMount.position.set(0, 0.065, 0.2); // Adjusted from 0.1 to 0.2
     rifleGroup.add(rearMount);
     
     // Position the rifle in the bottom-right corner of the camera view
