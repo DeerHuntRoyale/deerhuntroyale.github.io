@@ -6,10 +6,10 @@ const keys = {
     space: false,
     shift: false,
     r: false,
-    p: false,  // Purchase ammo
-    f: false,   // Harvest deer
-    e: false,   // Toggle scope mode
-    v: false    // New harvest key
+    p: false,
+    f: false,
+    e: false,
+    v: false
 };
 
 let isPointerLocked = false;

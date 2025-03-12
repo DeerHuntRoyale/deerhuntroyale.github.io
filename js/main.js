@@ -23,6 +23,9 @@ let scopeOverlayMaterial;
 let scopeOverlayScene;
 let scopeOverlayCamera;
 
+// Add a new global variable for the kill distance message
+let killDistanceMessage = null;
+
 // Initialize the game
 function init() {
     // Create scene
@@ -82,7 +85,7 @@ function init() {
     // Create harvest prompt element
     const harvestPrompt = document.createElement('div');
     harvestPrompt.id = 'harvest-prompt';
-    harvestPrompt.textContent = 'Press F to harvest';
+    harvestPrompt.textContent = 'Press V to harvest';
     harvestPrompt.style.position = 'absolute';
     harvestPrompt.style.bottom = '50%';
     harvestPrompt.style.left = '50%';
@@ -125,6 +128,22 @@ function init() {
         //     attemptToHarvest();
         // }
     });
+    
+    // Update the start screen to show the new control scheme
+    document.querySelector('#start-screen .controls-info').innerHTML = `
+        <h3>Controls:</h3>
+        <p>WASD - Move</p>
+        <p>Mouse - Look</p>
+        <p>Space - Shoot</p>
+        <p>R - Reload</p>
+        <p>V - Harvest animals</p>
+        <p>P - Purchase ammo ($${ammoCost} for ${ammoPackSize} bullets)</p>
+        <p>E - Toggle scope mode</p>
+        <p>When in scope mode:</p>
+        <p>- R - Zoom in</p>
+        <p>- F - Zoom out</p>
+        <p>- E - Exit scope mode</p>
+    `;
 }
 
 function startGame() {
@@ -265,13 +284,31 @@ function handleDeerHit(deer) {
     // Play hit sound
     playSound('deerHit');
     
-    // Kill the deer instead of removing it
+    // Calculate distance between player and deer (in game units)
+    const distanceInUnits = player.position.distanceTo(deer.position);
+    
+    // Convert to yards (assuming 1 unit = 1 meter, and 1 meter = 1.09361 yards)
+    const distanceInYards = Math.round(distanceInUnits * 1.09361);
+    
+    // Display kill distance message
+    showKillDistance(distanceInYards, 'Deer');
+    
+    // Kill the deer
     killDeer(deer);
 }
 
 function handleBunnyHit(bunny) {
     // Play hit sound
     playSound('bunnyHit');
+    
+    // Calculate distance between player and bunny
+    const distanceInUnits = player.position.distanceTo(bunny.position);
+    
+    // Convert to yards
+    const distanceInYards = Math.round(distanceInUnits * 1.09361);
+    
+    // Display kill distance message
+    showKillDistance(distanceInYards, 'Bunny');
     
     // Kill the bunny
     killBunny(bunny);
@@ -370,10 +407,10 @@ function checkForHarvest() {
             if (distance < 3) {
                 showHarvestPrompt();
                 
-                // If player presses harvest key (F)
-                if (keys.f) {
+                // If player presses harvest key (V instead of F)
+                if (keys.v) {
                     harvestDeer(deer);
-                    keys.f = false; // Reset to prevent multiple harvests
+                    keys.v = false; // Reset to prevent multiple harvests
                 }
             }
         }
@@ -389,10 +426,10 @@ function checkForHarvest() {
             if (distance < 3) {
                 showHarvestPrompt();
                 
-                // If player presses harvest key (F)
-                if (keys.f) {
+                // If player presses harvest key (V instead of F)
+                if (keys.v) {
                     harvestBunny(bunny);
-                    keys.f = false; // Reset to prevent multiple harvests
+                    keys.v = false; // Reset to prevent multiple harvests
                 }
             }
         }
@@ -700,6 +737,48 @@ function zoomScope(direction) {
     if (scopeZoomLevel > MAX_ZOOM) scopeZoomLevel = MAX_ZOOM;
     
     console.log("Scope zoom level: " + scopeZoomLevel + "x");
+}
+
+// New function to show kill distance
+function showKillDistance(distance, animalType) {
+    // Remove previous message if it exists
+    if (killDistanceMessage) {
+        document.body.removeChild(killDistanceMessage);
+    }
+    
+    // Create new message element
+    killDistanceMessage = document.createElement('div');
+    killDistanceMessage.style.position = 'absolute';
+    killDistanceMessage.style.top = '100px';
+    killDistanceMessage.style.width = '100%';
+    killDistanceMessage.style.textAlign = 'center';
+    killDistanceMessage.style.color = '#FF9900';
+    killDistanceMessage.style.fontSize = '24px';
+    killDistanceMessage.style.fontWeight = 'bold';
+    killDistanceMessage.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.7)';
+    killDistanceMessage.style.transition = 'opacity 3s';
+    killDistanceMessage.style.opacity = '1';
+    killDistanceMessage.style.pointerEvents = 'none'; // Don't interfere with clicks
+    
+    // Create message text
+    const yards = distance === 1 ? 'yard' : 'yards';
+    killDistanceMessage.textContent = `${animalType} killed at ${distance} ${yards}!`;
+    
+    // Add to document
+    document.body.appendChild(killDistanceMessage);
+    
+    // Fade out after 3 seconds
+    setTimeout(() => {
+        killDistanceMessage.style.opacity = '0';
+        
+        // Remove from DOM after fade completes
+        setTimeout(() => {
+            if (killDistanceMessage && killDistanceMessage.parentNode) {
+                document.body.removeChild(killDistanceMessage);
+                killDistanceMessage = null;
+            }
+        }, 3000);
+    }, 3000);
 }
 
 // Initialize game
