@@ -18,6 +18,7 @@ let inScopeMode = false;
 let scopeZoomLevel = 5; // Starting zoom level
 const MIN_ZOOM = 3;
 const MAX_ZOOM = 10;
+let originalCameraFOV; // Store original camera FOV
 let scopeOverlayMaterial;
 let scopeOverlayScene;
 let scopeOverlayCamera;
@@ -107,6 +108,8 @@ function init() {
         // E to toggle scope mode (enter/exit)
         if (event.key === 'e' || event.key === 'E') {
             toggleScopeMode();
+            event.preventDefault(); // Prevent default behavior
+            return; // Stop processing this event
         } 
         // R to zoom in (only when in scope mode)
         else if ((event.key === 'r' || event.key === 'R') && inScopeMode) {
@@ -325,9 +328,11 @@ function animate(time) {
     // Update the scope view BEFORE the main render
     updateScopeView();
     
-    // Apply camera zoom
-    camera.fov = 75 / zoomLevel;
-    camera.updateProjectionMatrix();
+    // Apply camera zoom only when NOT in scope mode
+    if (!inScopeMode) {
+        camera.fov = 75 / zoomLevel;
+        camera.updateProjectionMatrix();
+    }
     
     // Hide harvest prompt by default each frame
     hideHarvestPrompt();
@@ -343,7 +348,7 @@ function animate(time) {
     
     // Render based on current mode
     if (inScopeMode) {
-        // Render the scope overlay scene
+        updateScopeView(); // Only update scope view when in scope mode
         renderer.render(scopeOverlayScene, scopeOverlayCamera);
     } else {
         // Regular game view
@@ -527,13 +532,16 @@ function createPlayerRifle() {
     scene.add(camera);
 }
 
-// Updated function to render scope view
+// Updated function to render scope view with proper reset
 function updateScopeView() {
+    // Only update if we're in scope mode
+    if (!inScopeMode) return;
+    
     // Position the scope camera at the same position as the player camera
     scopeCamera.position.copy(camera.position);
     scopeCamera.rotation.copy(camera.rotation);
     
-    // Apply current zoom level
+    // Apply zoom level to scope camera only
     scopeCamera.fov = camera.fov / scopeZoomLevel;
     scopeCamera.updateProjectionMatrix();
     
@@ -550,7 +558,7 @@ function updateScopeView() {
     renderer.render(scene, scopeCamera);
     renderer.setRenderTarget(null);
     
-    // Restore rifle visibility
+    // Restore rifle visibility (important for when we exit scope mode)
     if (camera.children.length > 0) {
         camera.children[0].visible = rifleVisible;
     }
@@ -656,14 +664,36 @@ function setupScopeMode() {
 }
 
 function toggleScopeMode() {
+    // Toggle scope mode state
     inScopeMode = !inScopeMode;
     
-    // Hide the rifle when in scope mode
-    if (camera.children.length > 0) {
-        camera.children[0].visible = !inScopeMode;
+    if (inScopeMode) {
+        // Entering scope mode
+        console.log("Entering scope mode");
+        
+        // Store original camera FOV with current zoom applied
+        originalCameraFOV = camera.fov;
+        
+        // Hide the rifle when in scope mode
+        if (camera.children.length > 0) {
+            camera.children[0].visible = false;
+        }
+    } else {
+        // Exiting scope mode
+        console.log("Exiting scope mode");
+        
+        // Restore original camera FOV exactly as it was
+        camera.fov = originalCameraFOV;
+        camera.updateProjectionMatrix();
+        
+        // Make rifle visible again
+        if (camera.children.length > 0) {
+            camera.children[0].visible = true;
+        }
+        
+        // Reset scope zoom level for next time
+        scopeZoomLevel = 5;
     }
-    
-    console.log("Scope mode: " + (inScopeMode ? "ON" : "OFF"));
 }
 
 // Function to increase/decrease scope zoom

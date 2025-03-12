@@ -7,7 +7,8 @@ const keys = {
     shift: false,
     r: false,
     q: false,  // Zoom out
-    e: false,  // Zoom in
+    z: false,  // Zoom in (changed from e)
+    e: false,  // Now exclusively for scope mode
     p: false,  // Purchase ammo
     f: false   // Harvest deer
 };
@@ -37,8 +38,8 @@ function initControls() {
                 keys.q = true; 
                 zoomOut();
                 break;
-            case 'e': 
-                keys.e = true; 
+            case 'z': // Changed from 'e' to 'z' for zooming in
+                keys.z = true; 
                 zoomIn();
                 break;
             case 'p':
@@ -61,7 +62,8 @@ function initControls() {
             case 'shift': keys.shift = false; break;
             case 'r': keys.r = false; break;
             case 'q': keys.q = false; break;
-            case 'e': keys.e = false; break;
+            case 'z': keys.z = false; break; // Added for zoom in
+            case 'e': keys.e = false; break; // Keep this for scope mode
             case 'p': keys.p = false; break;
             case 'f': keys.f = false; break;
         }
