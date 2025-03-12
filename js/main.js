@@ -9,8 +9,8 @@ let ammoCost = 10;  // Cost for a pack of ammo
 let isGameActive = false;
 let lastTime = 0;
 let zoomLevel = 1;
-let scopeCamera, scopeRenderTarget, scopeTexture;
-const SCOPE_ZOOM = 3; // Magnification level of the scope
+let scopeCamera, scopeRenderTarget;
+const SCOPE_ZOOM = 3; // Magnification level
 
 // Initialize the game
 function init() {
@@ -272,7 +272,7 @@ function animate(time) {
     // Update player movement and camera
     updateControls(delta);
     
-    // Update scope camera to match main camera
+    // Update the scope view BEFORE the main render
     updateScopeView();
     
     // Apply camera zoom
@@ -355,7 +355,7 @@ function setupScopeRendering() {
     // Create a camera specifically for the scope view
     scopeCamera = new THREE.PerspectiveCamera(75 / SCOPE_ZOOM, 1, 0.1, 1000);
     
-    // Initial setup - will be updated every frame to match main camera
+    // Initial setup - will be updated every frame
     scopeCamera.position.copy(camera.position);
     scopeCamera.rotation.copy(camera.rotation);
 }
@@ -389,16 +389,16 @@ function createPlayerRifle() {
     scope.position.set(0, 0.09, 0.15);
     rifleGroup.add(scope);
     
-    // Lens with 10% SMALLER DIAMETER
-    const lensGeometry = new THREE.CircleGeometry(0.02, 16); // Reduced from 0.025 to 0.0225 (10% smaller)
+    // Create lens with render target as texture 
+    const lensGeometry = new THREE.CircleGeometry(0.02, 16);
     const lensMaterial = new THREE.MeshBasicMaterial({ 
-        map: scopeTexture,
-        side: THREE.DoubleSide,
-        color: 0x00ffff
+        map: scopeRenderTarget.texture, // Use the render target texture
+        side: THREE.DoubleSide
+        // Remove the color property to show the actual texture
     });
-    const lens = new THREE.Mesh(lensGeometry, lensMaterial);
     
     // Keep the same position
+    const lens = new THREE.Mesh(lensGeometry, lensMaterial);
     lens.position.set(0, 0.09, 0.226);
     lens.rotation.set(0, 0, 0);
     rifleGroup.add(lens);
