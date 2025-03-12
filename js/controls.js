@@ -6,11 +6,10 @@ const keys = {
     space: false,
     shift: false,
     r: false,
-    q: false,  // Zoom out
-    z: false,  // Zoom in (changed from e)
-    e: false,  // Now exclusively for scope mode
     p: false,  // Purchase ammo
-    f: false   // Harvest deer
+    f: false,   // Harvest deer
+    e: false,   // Toggle scope mode
+    v: false    // New harvest key
 };
 
 let isPointerLocked = false;
@@ -34,20 +33,20 @@ function initControls() {
                 keys.r = true;
                 reload();
                 break;
-            case 'q': 
-                keys.q = true; 
-                zoomOut();
-                break;
-            case 'z': // Changed from 'e' to 'z' for zooming in
-                keys.z = true; 
-                zoomIn();
-                break;
             case 'p':
                 keys.p = true;
                 buyAmmo();
                 break;
             case 'f':
                 keys.f = true;
+                break;
+            case 'v':
+                keys.v = true;
+                // Handle harvest
+                break;
+            case 'e':
+                keys.e = true;
+                // E is now handled in main.js for scope mode
                 break;
         }
     });
@@ -61,11 +60,10 @@ function initControls() {
             case ' ': keys.space = false; break;
             case 'shift': keys.shift = false; break;
             case 'r': keys.r = false; break;
-            case 'q': keys.q = false; break;
-            case 'z': keys.z = false; break; // Added for zoom in
-            case 'e': keys.e = false; break; // Keep this for scope mode
             case 'p': keys.p = false; break;
             case 'f': keys.f = false; break;
+            case 'v': keys.v = false; break;
+            case 'e': keys.e = false; break;
         }
     });
 
@@ -197,10 +195,6 @@ function onTouchEnd(event) {
 function onWheel(event) {
     // Prevent default zoom behavior
     event.preventDefault();
-    
-    // Handle trackpad/mouse wheel zoom
-    const zoomDelta = -event.deltaY * 0.001;
-    zoomLevel = Math.max(1, Math.min(3, zoomLevel + zoomDelta));
 }
 
 function updateControls(delta) {
@@ -297,16 +291,6 @@ function checkCollision(direction, distance) {
     const intersects = raycaster.intersectObjects(collisionObjects, true);
     
     return intersects.length > 0;
-}
-
-function zoomIn() {
-    if (!isGameActive) return;
-    zoomLevel = Math.min(3, zoomLevel + 0.1);
-}
-
-function zoomOut() {
-    if (!isGameActive) return;
-    zoomLevel = Math.max(1, zoomLevel - 0.1);
 }
 
 function getTerrainHeight(x, z) {

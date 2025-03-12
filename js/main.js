@@ -325,15 +325,6 @@ function animate(time) {
     // Update player movement and camera
     updateControls(delta);
     
-    // Update the scope view BEFORE the main render
-    updateScopeView();
-    
-    // Apply camera zoom only when NOT in scope mode
-    if (!inScopeMode) {
-        camera.fov = 75 / zoomLevel;
-        camera.updateProjectionMatrix();
-    }
-    
     // Hide harvest prompt by default each frame
     hideHarvestPrompt();
     
@@ -351,7 +342,7 @@ function animate(time) {
         updateScopeView(); // Only update scope view when in scope mode
         renderer.render(scopeOverlayScene, scopeOverlayCamera);
     } else {
-        // Regular game view
+        // Regular game view with consistent FOV (no zoom)
         renderer.render(scene, camera);
     }
 }
@@ -671,8 +662,8 @@ function toggleScopeMode() {
         // Entering scope mode
         console.log("Entering scope mode");
         
-        // Store original camera FOV with current zoom applied
-        originalCameraFOV = camera.fov;
+        // Store original camera FOV (now always 75 since we removed zoomLevel)
+        originalCameraFOV = 75; // Using default FOV
         
         // Hide the rifle when in scope mode
         if (camera.children.length > 0) {
@@ -682,7 +673,7 @@ function toggleScopeMode() {
         // Exiting scope mode
         console.log("Exiting scope mode");
         
-        // Restore original camera FOV exactly as it was
+        // Restore original FOV
         camera.fov = originalCameraFOV;
         camera.updateProjectionMatrix();
         
