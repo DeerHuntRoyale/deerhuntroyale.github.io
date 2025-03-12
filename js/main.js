@@ -11,7 +11,16 @@ let lastTime = 0;
 let zoomLevel = 1;
 let scopeCamera, scopeRenderTarget;
 let scopeCrosshairTexture;
-const SCOPE_ZOOM = 15;
+const SCOPE_ZOOM = 5;
+
+// Global variables for scope mode
+let inScopeMode = false;
+let scopeZoomLevel = 5; // Starting zoom level
+const MIN_ZOOM = 3;
+const MAX_ZOOM = 10;
+let scopeOverlayMaterial;
+let scopeOverlayScene;
+let scopeOverlayCamera;
 
 // Initialize the game
 function init() {
@@ -89,6 +98,30 @@ function init() {
     
     // Create and add rifle model after camera is initialized
     createPlayerRifle();
+    
+    // Set up scope mode
+    setupScopeMode();
+    
+    // SIMPLIFIED CONTROLS
+    document.addEventListener('keydown', (event) => {
+        // E to toggle scope mode (enter/exit)
+        if (event.key === 'e' || event.key === 'E') {
+            toggleScopeMode();
+        } 
+        // R to zoom in (only when in scope mode)
+        else if ((event.key === 'r' || event.key === 'R') && inScopeMode) {
+            zoomScope(1);
+        }
+        // F to zoom out (only when in scope mode)
+        else if ((event.key === 'f' || event.key === 'F') && inScopeMode) {
+            zoomScope(-1);
+        }
+        
+        // Harvesting with V can be handled in your existing control system
+        // if (event.key === 'v' || event.key === 'V') {
+        //     attemptToHarvest();
+        // }
+    });
 }
 
 function startGame() {
@@ -113,6 +146,22 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    
+    // Update scope view for new aspect ratio
+    if (scopeOverlayMaterial) {
+        scopeOverlayMaterial.uniforms.aspectRatio.value = window.innerWidth / window.innerHeight;
+    }
+    
+    // Update scope render target
+    if (scopeRenderTarget) {
+        scopeRenderTarget.setSize(window.innerWidth, window.innerHeight);
+    }
+    
+    // Update scope camera aspect ratio
+    if (scopeCamera) {
+        scopeCamera.aspect = window.innerWidth / window.innerHeight;
+        scopeCamera.updateProjectionMatrix();
+    }
 }
 
 function updateScore() {
@@ -292,8 +341,14 @@ function animate(time) {
         rifleModel.position.y = -0.2 + Math.sin(time * 0.01) * 0.01;
     }
     
-    // Render scene
-    renderer.render(scene, camera);
+    // Render based on current mode
+    if (inScopeMode) {
+        // Render the scope overlay scene
+        renderer.render(scopeOverlayScene, scopeOverlayCamera);
+    } else {
+        // Regular game view
+        renderer.render(scene, camera);
+    }
 }
 
 // Show and hide harvest prompt
@@ -472,33 +527,158 @@ function createPlayerRifle() {
     scene.add(camera);
 }
 
-// Keep your lens and crosshair dimensions exactly as you set them
-// Just update the zoom level in updateScopeView
+// Updated function to render scope view
 function updateScopeView() {
-    // Position scope camera at the same position as main camera
+    // Position the scope camera at the same position as the player camera
     scopeCamera.position.copy(camera.position);
     scopeCamera.rotation.copy(camera.rotation);
     
-    // Make sure FOV is set correctly for zoom
-    scopeCamera.fov = camera.fov / SCOPE_ZOOM;
+    // Apply current zoom level
+    scopeCamera.fov = camera.fov / scopeZoomLevel;
     scopeCamera.updateProjectionMatrix();
     
-    // Temporarily hide the rifle to avoid recursive rendering
+    // Hide the rifle temporarily to avoid recursive rendering
     let rifleVisible = false;
     if (camera.children.length > 0) {
         rifleVisible = camera.children[0].visible;
         camera.children[0].visible = false;
     }
     
-    // Render the scene from scope camera to the render target
+    // Render the scene to the scope render target
     renderer.setRenderTarget(scopeRenderTarget);
+    renderer.clear();
     renderer.render(scene, scopeCamera);
     renderer.setRenderTarget(null);
     
-    // Make rifle visible again
+    // Restore rifle visibility
     if (camera.children.length > 0) {
         camera.children[0].visible = rifleVisible;
     }
+}
+
+function setupScopeMode() {
+    // Create a render target for the zoomed view
+    scopeRenderTarget = new THREE.WebGLRenderTarget(
+        window.innerWidth, 
+        window.innerHeight
+    );
+    
+    // Create a camera for the scope view
+    scopeCamera = new THREE.PerspectiveCamera(
+        75, 
+        window.innerWidth / window.innerHeight, 
+        0.1, 
+        1000
+    );
+    
+    // Create a full-screen plane for the scope overlay
+    const overlayGeometry = new THREE.PlaneGeometry(2, 2);
+    
+    // Create the scope overlay material with a much larger circle
+    scopeOverlayMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+            scopeTexture: { value: scopeRenderTarget.texture },
+            aspectRatio: { value: window.innerWidth / window.innerHeight }
+        },
+        vertexShader: `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform sampler2D scopeTexture;
+            uniform float aspectRatio;
+            varying vec2 vUv;
+            
+            void main() {
+                // Center coordinates
+                vec2 center = vec2(0.5, 0.5);
+                
+                // Adjust UV for aspect ratio to keep circle perfectly round
+                vec2 adjustedUV = vUv;
+                
+                // Make a larger scope circle (80% of height)
+                float scopeRadius = 0.4; // 40% of normalized space = 80% diameter
+                
+                // Calculate distance considering aspect ratio to keep it circular
+                float dx = (adjustedUV.x - center.x) * aspectRatio;
+                float dy = adjustedUV.y - center.y;
+                float dist = sqrt(dx*dx + dy*dy);
+                
+                if (dist < scopeRadius) {
+                    // Inside scope view - show the rendered texture
+                    gl_FragColor = texture2D(scopeTexture, vUv);
+                    
+                    // Add crosshairs
+                    float lineWidth = 0.001;
+                    // Thicker at edges, thinner near center
+                    float centerDist = dist / scopeRadius; // 0 at center, 1 at edge
+                    lineWidth = mix(0.0005, 0.002, centerDist);
+                    
+                    // Horizontal line
+                    if (abs(vUv.y - 0.5) < lineWidth) {
+                        gl_FragColor = mix(gl_FragColor, vec4(0.0, 0.0, 0.0, 0.7), 0.7);
+                    }
+                    // Vertical line
+                    if (abs(vUv.x - 0.5) < lineWidth) {
+                        gl_FragColor = mix(gl_FragColor, vec4(0.0, 0.0, 0.0, 0.7), 0.7);
+                    }
+                    
+                    // Small center dot
+                    float centerSize = 0.002;
+                    if (dist < centerSize) {
+                        gl_FragColor = mix(gl_FragColor, vec4(0.0, 0.0, 0.0, 0.9), 0.9);
+                    }
+                    
+                    // Scope edge - dark vignette around the edge
+                    float edgeStart = scopeRadius * 0.95;
+                    if (dist > edgeStart) {
+                        float t = smoothstep(edgeStart, scopeRadius, dist);
+                        gl_FragColor = mix(gl_FragColor, vec4(0.0, 0.0, 0.0, 1.0), t);
+                    }
+                } else {
+                    // Outside scope - black vignette
+                    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+                }
+            }
+        `
+    });
+    
+    // Create a separate scene and camera for rendering the scope overlay
+    scopeOverlayScene = new THREE.Scene();
+    scopeOverlayCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    
+    // Add the overlay plane to the scene
+    const overlayPlane = new THREE.Mesh(overlayGeometry, scopeOverlayMaterial);
+    scopeOverlayScene.add(overlayPlane);
+}
+
+function toggleScopeMode() {
+    inScopeMode = !inScopeMode;
+    
+    // Hide the rifle when in scope mode
+    if (camera.children.length > 0) {
+        camera.children[0].visible = !inScopeMode;
+    }
+    
+    console.log("Scope mode: " + (inScopeMode ? "ON" : "OFF"));
+}
+
+// Function to increase/decrease scope zoom
+function zoomScope(direction) {
+    // Only allow zooming when in scope mode
+    if (!inScopeMode) return;
+    
+    // Adjust zoom level
+    scopeZoomLevel += direction;
+    
+    // Clamp zoom level
+    if (scopeZoomLevel < MIN_ZOOM) scopeZoomLevel = MIN_ZOOM;
+    if (scopeZoomLevel > MAX_ZOOM) scopeZoomLevel = MAX_ZOOM;
+    
+    console.log("Scope zoom level: " + scopeZoomLevel + "x");
 }
 
 // Initialize game
