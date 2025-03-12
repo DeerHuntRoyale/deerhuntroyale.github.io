@@ -10,7 +10,8 @@ let isGameActive = false;
 let lastTime = 0;
 let zoomLevel = 1;
 let scopeCamera, scopeRenderTarget;
-const SCOPE_ZOOM = 3; // Magnification level
+let scopeCrosshairTexture;
+const SCOPE_ZOOM = 15;
 
 // Initialize the game
 function init() {
@@ -347,7 +348,7 @@ function checkForHarvest() {
     });
 }
 
-// Add this new function to set up scope rendering
+// Setup the scope rendering with improved crosshairs
 function setupScopeRendering() {
     // Create a render target texture for the scope
     scopeRenderTarget = new THREE.WebGLRenderTarget(256, 256);
@@ -358,6 +359,44 @@ function setupScopeRendering() {
     // Initial setup - will be updated every frame
     scopeCamera.position.copy(camera.position);
     scopeCamera.rotation.copy(camera.rotation);
+    
+    // Create a canvas for the crosshairs overlay
+    setupCrosshairsOverlay();
+}
+
+// Modify only the crosshair texture to be more transparent
+function setupCrosshairsOverlay() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    
+    // Clear canvas with fully transparent background
+    ctx.clearRect(0, 0, 64, 64);
+    
+    // Draw crosshairs - MORE TRANSPARENT
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)'; // 30% opacity
+    ctx.lineWidth = 1;
+    
+    // Horizontal line
+    ctx.beginPath();
+    ctx.moveTo(16, 32);
+    ctx.lineTo(48, 32);
+    ctx.stroke();
+    
+    // Vertical line
+    ctx.beginPath();
+    ctx.moveTo(32, 16);
+    ctx.lineTo(32, 48);
+    ctx.stroke();
+    
+    // Small circle at center
+    ctx.beginPath();
+    ctx.arc(32, 32, 2, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Create texture
+    scopeCrosshairTexture = new THREE.CanvasTexture(canvas);
 }
 
 function createPlayerRifle() {
@@ -389,19 +428,30 @@ function createPlayerRifle() {
     scope.position.set(0, 0.09, 0.15);
     rifleGroup.add(scope);
     
-    // Create lens with render target as texture 
-    const lensGeometry = new THREE.CircleGeometry(0.02, 16);
+    // Basic scope lens showing the render target
+    const lensGeometry = new THREE.CircleGeometry(0.021, 16);
     const lensMaterial = new THREE.MeshBasicMaterial({ 
-        map: scopeRenderTarget.texture, // Use the render target texture
+        map: scopeRenderTarget.texture,
         side: THREE.DoubleSide
-        // Remove the color property to show the actual texture
     });
-    
-    // Keep the same position
     const lens = new THREE.Mesh(lensGeometry, lensMaterial);
     lens.position.set(0, 0.09, 0.226);
     lens.rotation.set(0, 0, 0);
     rifleGroup.add(lens);
+    
+    // Add crosshairs overlay
+    const crosshairGeometry = new THREE.CircleGeometry(0.0226, 16);
+    const crosshairMaterial = new THREE.MeshBasicMaterial({ 
+        map: scopeCrosshairTexture,
+        transparent: true,
+        opacity: 1.0,
+        side: THREE.DoubleSide,
+        depthTest: false // Draw on top
+    });
+    const crosshair = new THREE.Mesh(crosshairGeometry, crosshairMaterial);
+    crosshair.position.set(0, 0.09, 0.226); // Slightly in front of lens
+    crosshair.rotation.set(0, 0, 0);
+    rifleGroup.add(crosshair);
     
     // Simple scope mounts
     const mountGeometry = new THREE.BoxGeometry(0.03, 0.02, 0.03);
@@ -422,13 +472,14 @@ function createPlayerRifle() {
     scene.add(camera);
 }
 
-// Add this function to update the scope view
+// Keep your lens and crosshair dimensions exactly as you set them
+// Just update the zoom level in updateScopeView
 function updateScopeView() {
     // Position scope camera at the same position as main camera
     scopeCamera.position.copy(camera.position);
     scopeCamera.rotation.copy(camera.rotation);
     
-    // Update the projection matrix for zoom
+    // Make sure FOV is set correctly for zoom
     scopeCamera.fov = camera.fov / SCOPE_ZOOM;
     scopeCamera.updateProjectionMatrix();
     
